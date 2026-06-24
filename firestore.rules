@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Profile validation schema boundaries
+    function hasValidUserKeys(keys) {
+      return keys.hasOnly([
+        'uid', 'firebaseUid', 'businessId', 'email', 'shopName', 'ownerName', 'phone', 
+        'alternatePhone', 'emailAddress', 'address', 'logo', 'category', 'gstNumber', 
+        'upiId', 'qrCode', 'website', 'terms', 'bankDetails', 'createdAt', 'status', 
+        'deletedAt', 'recoveryDeadline', 'showBusinessIdOnInvoice', 'notificationSettings', 'registeredTokens', 'showUpiIdOnBill',
+        'role', 'invoicePrefix', 'barcodeScannerEnabled', 'businessDescription', 'socialLinks'
+      ]);
+    }
+
+    // User document validation helper
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+        && (!data.keys().hasAny(['firebaseUid']) || data.firebaseUid == request.auth.uid)
+        && data.businessId is string
+        && data.businessId.size() >= 3
+        && data.businessId.size() <= 40
+        && data.email is string
+        && data.shopName is string
+        && data.ownerName is string
+        && data.phone is string
+        && data.address is string
+        && (!data.keys().hasAny(['logo']) || data.logo is string)
+        && (!data.keys().hasAny(['category']) || data.category is string)
+        && (!data.keys().hasAny(['gstNumber']) || data.gstNumber is string)
+        && (!data.keys().hasAny(['invoicePrefix']) || (data.invoicePrefix is string && data.invoicePrefix.size() <= 20))
+        && (!data.keys().hasAny(['barcodeScannerEnabled']) || data.barcodeScannerEnabled is bool)
+        && (!data.keys().hasAny(['businessDescription']) || data.businessDescription is string)
+        && (!data.keys().hasAny(['socialLinks']) || data.socialLinks is string);
+    }
+
+    // Notification document validation helper
+    function isValidNotification(data) {
+      return data.userId == request.auth.uid
+        && data.id is string
+        && data.title is string
+        && data.body is string
+        && data.type is string
+        && data.read is bool;
+    }
+
+    // Bill document validation helper
+    function isValidBill(data) {
+      return data.userId == request.auth.uid
+        && data.billId is string
+        && data.billId.matches('^[a-zA-Z0-9_-]+$')
+        && data.invoiceNumber is string
+        && data.invoiceDate is string
+        && data.customerDetails is map
+        && data.customerDetails.name is string
+        && data.products is list
+        && data.products.size() <= 100
+        && data.totalAmount is number
+        && data.totalAmount >= 0;
+    }
+
+    // Users Collection Match Block
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'businessId', 'email', 'shopName', 'ownerName', 'phone', 'address', 'createdAt'])
+        && isValidUser(request.resource.data)
+        && hasValidUserKeys(request.resource.data.keys())
+        && (
+          !('role' in request.resource.data)
+          || request.resource.data.role == "user"
+          || request.resource.data.role == "manager"
+          || request.resource.data.role == "staff"
+          || (request.resource.data.role == "admin" && request.auth.token.email == "raghavpratap987654@gmail.com" && request.auth.token.email_verified == true)
+        );
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && (!('businessId' in resource.data) || request.resource.data.businessId == resource.data.businessId)
+        && isValidUser(request.resource.data)
+        && hasValidUserKeys(request.resource.data.keys())
+        && (
+          !('role' in request.resource.data)
+          || request.resource.data.role == resource.data.role
+          || request.resource.data.role == "user"
+          || request.resource.data.role == "manager"
+          || request.resource.data.role == "staff"
+          || (request.resource.data.role == "admin" && request.auth.token.email == "raghavpratap987654@gmail.com" && request.auth.token.email_verified == true)
+        );
+      allow delete: if isOwner(userId);
+    }
+
+    // Deletion Audit Logs Collection Match Block
+    match /deletionAuditLogs/{auditLogId} {
+      allow get: if isSignedIn() && resource.data.firebaseUid == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.firebaseUid == request.auth.uid 
+        && request.resource.data.keys().hasOnly(['id', 'businessId', 'firebaseUid', 'deletionDate', 'recoveryDeadline', 'deletionMethod', 'verificationMethod']);
+    }
+
+    // Bills Collection Match Block
+    match /bills/{billId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.billId == billId
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasAll(['billId', 'userId', 'invoiceNumber', 'invoiceDate', 'customerDetails', 'products', 'totalAmount', 'createdAt'])
+        && isValidBill(request.resource.data)
+        && request.resource.data.keys().hasOnly([
+          'billId', 'businessId', 'userId', 'userUid', 'invoiceNumber', 'invoiceDate', 
+          'customerDetails', 'otherDetails', 'products', 'subTotal', 'discountPercent', 
+          'discountAmount', 'gstPercent', 'gstAmount', 'cgstAmount', 'sgstAmount', 
+          'igstAmount', 'totalAmount', 'paidAmount', 'balanceAmount', 'paymentMode', 
+          'notes', 'paymentStatus', 'createdAt', 'isSynced'
+        ]);
+      allow update: if isSignedIn() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.billId == resource.data.billId;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Inventory Collection Match Block
+    match /inventory/{itemId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == itemId
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'name', 'category', 'sku', 'hsn', 'unit', 'purchasePrice', 'sellingPrice', 'stock', 'minStockAlert', 'description', 'createdAt', 'imageUrl', 'supplierName']);
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Stock Movements Collection Match Block
+    match /stockMovements/{movementId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == movementId
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'productId', 'productName', 'date', 'type', 'quantity', 'reason', 'referenceId', 'sku', 'previousStock', 'newStock', 'actionType']);
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications Collection Match Block
+    match /notifications/{notificationId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == notificationId
+        && request.resource.data.createdAt == request.time
+        && isValidNotification(request.resource.data)
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'title', 'body', 'type', 'read', 'createdAt']);
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'title', 'body', 'type', 'read', 'createdAt', 'isSynced']);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    // Financial Transactions Collection Match Block
+    match /financial_transactions/{txId} {
+      allow list, get: if isSignedIn() && resource.data.businessId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.businessId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.businessId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,37 @@
+# Search Engine Optimization for Vyapar Mitra
+# Official URL: https://vyaparmitra.app/
+
+User-agent: *
+
+# Allow crawling of the public website
+Allow: /
+Allow: /features
+Allow: /about
+Allow: /faq
+Allow: /contact
+Allow: /login
+Allow: /signup
+Allow: /privacy-policy
+Allow: /terms
+Allow: /billing-software
+Allow: /inventory-management
+Allow: /invoice-generator
+Allow: /business-analytics
+Allow: /blog
+Allow: /blog/*
+
+# Strictly disallow private web app routes to safeguard merchant data
+Disallow: /dashboard
+Disallow: /create-invoice
+Disallow: /invoices
+Disallow: /inventory
+Disallow: /analytics
+Disallow: /profile
+Disallow: /settings
+Disallow: /api/
+Disallow: /private/
+Disallow: /admin/
+Disallow: /firebase/
+
+# Cite dynamic production sitemap URL
+Sitemap: https://vyaparmitra.app/sitemap.xml

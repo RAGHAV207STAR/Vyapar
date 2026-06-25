@@ -1,14 +1,25 @@
-const CACHE_NAME = 'smart-vyapar-cache-v3';
+const CACHE_NAME = 'smart-vyapar-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.ico',
+  '/favicon-16x16.png',
+  '/favicon-32x32.png',
+  '/apple-touch-icon.png',
+  '/og-image.png'
 ];
 
 // Import Firebase Messaging service worker to unify PWA and Push Notifications
 importScripts('/firebase-messaging-sw.js');
 
 self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Smart Vyapar Pre-caching critical assets');
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
   self.skipWaiting();
 });
 
@@ -18,6 +29,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('Smart Vyapar clearing old cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -27,33 +39,52 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
+  const url = new URL(event.request.url);
+
+  // 1. Bypass rules: Only handle GET requests, skip non-http(s) protocols
   if (event.request.method !== 'GET') return;
-  
+  if (!url.protocol.startsWith('http')) return;
+
+  // 2. Bypass dynamic/database/real-time and service API queries (Firebase, Firestore, Auth, etc.)
+  if (
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('identitytoolkit.googleapis.com') ||
+    url.hostname.includes('securetoken.googleapis.com') ||
+    url.hostname.includes('firebaseapp.com') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.includes('__aistudio_') ||
+    url.pathname.includes('/sockjs-node') ||
+    url.pathname.includes('hot-update')
+  ) {
+    // Direct network only
+    return;
+  }
+
+  // 3. Stale-While-Revalidate caching for static assets & pages
   event.respondWith(
-    // Network first approach for immediate updates
-    fetch(event.request)
-      .then((response) => {
-        // If valid response, clone it and cache it
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        // Asynchronously fetch fresh content from the network
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+              // Cache the new version for subsequent loads
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch((err) => {
+            console.log('Network request failed for ' + url.pathname + '; using cached asset if available.');
           });
+
+        // Return the cached version immediately (speed of <10ms!) or wait for the network fetch if not cached
+        return cachedResponse || fetchPromise;
+      }).catch(() => {
+        // Fallback when both cache and network fail
+        if (event.request.mode === 'navigate') {
+          return cache.match('/index.html');
         }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache if network fails (offline)
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // If navigation request and offline, fallback to index.html
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-      })
+      });
+    })
   );
 });

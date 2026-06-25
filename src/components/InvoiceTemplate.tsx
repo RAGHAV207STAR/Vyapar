@@ -1654,12 +1654,12 @@ Thank you for your business!`;
 
           <div className="bg-slate-50 text-center py-1 border border-slate-200/60 rounded-b-xl mt-1 select-all">
             <a 
-              href="https://ais-pre-bcqmpkyatfvrlpxxjt4o47-224993737646.asia-east1.run.app" 
+              href="https://smartvyapar.vercel.app/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-blue-600 font-extrabold hover:underline text-[9px] leading-tight block"
             >
-              https://ais-pre-bcqmpkyatfvrlpxxjt4o47-224993737646.asia-east1.run.app
+              https://smartvyapar.vercel.app/
             </a>
           </div>
         </div>

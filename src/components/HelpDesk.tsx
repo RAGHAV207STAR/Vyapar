@@ -22,7 +22,7 @@ export default function HelpDesk() {
 
   const defaultFaqs = [
     {
-      q: "Does Vyapar Mitra work completely offline?",
+      q: "Does Smart Vyapar work completely offline?",
       a: "Yes! If local internet goes down, the offline-first registry shell works flawlessly. Invoices draft at millisecond speed, stock deducts correctly, and updates back up to the browser database instantly. Once internet returns, you sync to Firestore with one tap.",
       category: "sync"
     },
@@ -33,7 +33,7 @@ export default function HelpDesk() {
     },
     {
       q: "Is my business data secure?",
-      a: "Security is our highest benchmark. Vyapar Mitra maintains rigid sandbox and cloud network boundaries. Your local cache remains isolated, and backups are encrypted via industry-grade SSL rules.",
+      a: "Security is our highest benchmark. Smart Vyapar maintains rigid sandbox and cloud network boundaries. Your local cache remains isolated, and backups are encrypted via industry-grade SSL rules.",
       category: "security"
     },
     {
@@ -48,7 +48,7 @@ export default function HelpDesk() {
     },
     {
       q: "How do I configure my customized UPI address for QR payments?",
-      a: "Go to the 'Profile' section from the sidebar. Under 'UPI Address for QR Payments', enter your business UPI handle (e.g., merchant@paytm or store@icici). Vyapar Mitra will instantly generate a scan-to-pay QR code on every customer bill!",
+      a: "Go to the 'Profile' section from the sidebar. Under 'UPI Address for QR Payments', enter your business UPI handle (e.g., merchant@paytm or store@icici). Smart Vyapar will instantly generate a scan-to-pay QR code on every customer bill!",
       category: "setup"
     }
   ];
@@ -69,7 +69,7 @@ export default function HelpDesk() {
         
         <div className="relative z-10 space-y-4 max-w-2xl">
           <span className="px-3 py-1 bg-indigo-500/20 text-indigo-350 border border-indigo-500/20 rounded-full font-mono text-[10px] uppercase tracking-wider font-extrabold">Online Support Gateway</span>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Vyapar Mitra Help Desk</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Smart Vyapar Help Desk</h1>
           <p className="text-sm text-slate-300 leading-relaxed font-semibold">
             Resolve thermal printer settings, query GST calculations, setup UPI QR handles, or submit direct optimization feedback to principal developer Raghav Pratap.
           </p>

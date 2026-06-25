@@ -41,10 +41,11 @@ interface POCreatorWorkspaceProps {
   activeDraftId: string | null;
   handleAddManualLine: (name: string, id: string | null, qty: number, price: number, cat: string, unit?: string) => void;
   handleSaveDraftManual: (shouldRedirect?: boolean) => void;
+  handleResetForm?: () => void;
   generatePO_PDF: (dObj: any) => void;
   triggerWhatsAppDispatch: (dObj: any) => void;
   triggerEmailDispatch: (dObj: any) => void;
-  handleFinalizeCustomDraftFile: (force: boolean, saveAsNew?: boolean) => void;
+  handleFinalizeCustomDraftFile: (force: boolean, saveAsNew?: boolean, skipResetAndRedirect?: boolean) => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   formatNum: (val: number) => string;
   smartAnalysis?: any; // Passed from parent
@@ -82,6 +83,7 @@ export default function POCreatorWorkspace({
   activeDraftId,
   handleAddManualLine,
   handleSaveDraftManual,
+  handleResetForm,
   generatePO_PDF,
   triggerWhatsAppDispatch,
   triggerEmailDispatch,
@@ -97,6 +99,7 @@ export default function POCreatorWorkspace({
   // Active step flow state: 1, 2, 3, 4
   const [activeStep, setActiveStep] = useState<number>(1);
   const [showInAppPreview, setShowInAppPreview] = useState<boolean>(false);
+  const [isPreviewOnly, setIsPreviewOnly] = useState<boolean>(false);
 
 
   // Guided step names
@@ -479,7 +482,13 @@ export default function POCreatorWorkspace({
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setShowInAppPreview(false)}
+                onClick={() => {
+                  setShowInAppPreview(false);
+                  if (isPreviewOnly && handleResetForm) {
+                    handleResetForm();
+                  }
+                  setIsPreviewOnly(false);
+                }}
                 className="group flex items-center justify-center w-12 h-12 rounded-xl border border-indigo-400/20 bg-indigo-500/10 hover:bg-white text-indigo-300 hover:text-slate-900 shadow-lg cursor-pointer transition-all duration-300"
                 title="Go Back"
               >
@@ -506,41 +515,51 @@ export default function POCreatorWorkspace({
                 <Download className="w-4 h-4" /> Download PDF File
               </button>
 
-              {reEditingPoId ? (
+              {!isPreviewOnly && (
                 <>
-                  <button
-                    onClick={() => {
-                      handleFinalizeCustomDraftFile(false, true); // saveAsNew = true
-                      setShowInAppPreview(false);
-                    }}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
-                  >
-                    <Check className="w-4 h-4" /> Save as New PO
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleFinalizeCustomDraftFile(false, false); // saveAsNew = false
-                      setShowInAppPreview(false);
-                    }}
-                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
-                  >
-                    <Check className="w-4 h-4" /> Replace with this
-                  </button>
+                  {reEditingPoId ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleFinalizeCustomDraftFile(false, true); // saveAsNew = true
+                          setShowInAppPreview(false);
+                        }}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                      >
+                        <Check className="w-4 h-4" /> Save as New PO
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleFinalizeCustomDraftFile(false, false); // saveAsNew = false
+                          setShowInAppPreview(false);
+                        }}
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                      >
+                        <Check className="w-4 h-4" /> Replace with this
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleFinalizeCustomDraftFile(false);
+                        setShowInAppPreview(false);
+                      }}
+                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                    >
+                      <Check className="w-4 h-4" /> Save in Receiving
+                    </button>
+                  )}
                 </>
-              ) : (
-                <button
-                  onClick={() => {
-                    handleFinalizeCustomDraftFile(false);
-                    setShowInAppPreview(false);
-                  }}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
-                >
-                  <Check className="w-4 h-4" /> Save in Receiving
-                </button>
               )}
 
               <button
-                onClick={() => setShowInAppPreview(false)}
+                onClick={() => {
+                  setShowInAppPreview(false);
+                  if (isPreviewOnly && handleResetForm) {
+                    handleResetForm();
+                  }
+                  setIsPreviewOnly(false);
+                }}
                 className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl text-xs font-black uppercase transition-all cursor-pointer active:scale-95"
               >
                 Exit Studio
@@ -2009,7 +2028,8 @@ export default function POCreatorWorkspace({
                     showToast("Please select or enter a supplier name to generate a PO.", "warning");
                     return;
                   }
-                  handleSaveDraftManual(false);
+                  handleFinalizeCustomDraftFile(false, false, true); // skipResetAndRedirect = true
+                  setIsPreviewOnly(true);
                   setShowInAppPreview(true);
                 }}
                 className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-[0.98] text-white font-black uppercase rounded-2xl tracking-widest text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/20 ring-1 ring-indigo-500/50"

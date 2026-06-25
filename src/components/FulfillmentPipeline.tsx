@@ -373,7 +373,7 @@ export default function FulfillmentPipeline({
                 >
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
-                    <span>Scan Supplier Invoice with Vyapar Mitra AI ({showAiScanner ? 'Hide Scanner' : 'Click to Scan'})</span>
+                    <span>Scan Supplier Invoice with Smart Vyapar AI ({showAiScanner ? 'Hide Scanner' : 'Click to Scan'})</span>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showAiScanner ? 'rotate-180' : ''}`} />
                 </button>
@@ -550,7 +550,7 @@ export default function FulfillmentPipeline({
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" /> Compliance Discrepancy Resolution Rule
                 </span>
                 <p className="text-[10px] font-semibold text-slate-500 leading-relaxed">
-                  Vyapar Mitra detects missing stock during intake arrivals. What should be done for remaining items not received?
+                  Smart Vyapar detects missing stock during intake arrivals. What should be done for remaining items not received?
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">

@@ -268,7 +268,7 @@ export default function ShopSetupForm() {
         localStorage.setItem(`vyapar_starting_invoice_no_${user?.uid || 'guest'}`, startingNumber.trim());
       }
       
-      showToast("Workspace setup completed successfully! Welcome to Vyapar Mitra.", "success");
+      showToast("Workspace setup completed successfully! Welcome to Smart Vyapar.", "success");
     } catch (err: any) {
       console.error(err);
       showToast(err.message || "Encountered cloud synchronization errors.", "warning");
@@ -306,10 +306,10 @@ export default function ShopSetupForm() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-xl bg-slate-55 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm overflow-hidden bg-white">
-              <img src={appLogo} alt="Vyapar Mitra Logo" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+              <img src={appLogo} alt="Smart Vyapar Logo" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
             </div>
             <span className="font-sans text-lg font-bold tracking-tight text-slate-800">
-              Vyapar <span className="font-extrabold text-[#007a78]">Mitra</span>
+              Smart <span className="font-extrabold text-[#007a78]">Vyapar</span>
             </span>
           </div>
           
@@ -358,7 +358,7 @@ export default function ShopSetupForm() {
               <div className="bg-[#eefcfb] rounded-2xl p-5 border border-[#d2f3f1] flex items-center justify-between gap-4 relative overflow-hidden text-left shadow-2xs">
                 <div className="space-y-1 z-10 max-w-[65%]">
                   <h1 className="text-lg sm:text-xl font-black text-slate-800 leading-tight">
-                    Welcome to <span className="text-[#007a78]">Vyapar Mitra! 👋</span>
+                    Welcome to <span className="text-[#007a78]">Smart Vyapar! 👋</span>
                   </h1>
                   <p className="text-xs font-semibold text-slate-600 leading-normal">
                     Let's set up your business profile
@@ -1205,7 +1205,7 @@ export default function ShopSetupForm() {
                 <div>
                   <h4 className="text-xs font-bold text-amber-900 leading-none">Good to know!</h4>
                   <p className="text-[10px] sm:text-xs text-amber-800 font-semibold mt-1 leading-normal">
-                    You can start using Vyapar Mitra immediately after completing the required information.
+                    You can start using Smart Vyapar immediately after completing the required information.
                   </p>
                 </div>
               </div>

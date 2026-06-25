@@ -1179,7 +1179,7 @@ export default function ProfileSection() {
               <div className="pt-4 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-800 mb-1">Account Recovery Information</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed font-sans">
-                  Your Business ID is the unique identity of your business database on VYAPAR MITRA. Keep this safe for secure diagnostics, customer settlement backups, and multi-device access logs.
+                  Your Business ID is the unique identity of your business database on SMART VYAPAR. Keep this safe for secure diagnostics, customer settlement backups, and multi-device access logs.
                 </p>
               </div>
             </div>

@@ -450,7 +450,7 @@ export default function AdminPanel() {
             </span>
           </div>
           <h2 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2" id="admin-heading">
-            Vyapar Mitra Command Console <span className="text-[10px] font-mono p-1 bg-white/10 rounded tracking-widest uppercase">Admin Panel</span>
+            Smart Vyapar Command Console <span className="text-[10px] font-mono p-1 bg-white/10 rounded tracking-widest uppercase">Admin Panel</span>
           </h2>
           <p className="text-xs font-semibold text-slate-300" id="admin-logged-as">
             Current Verified Operator: <span className="text-indigo-300 font-extrabold">{profile?.email}</span> (Authorized Role: <span className="text-emerald-400 font-extrabold uppercase">{profile?.role}</span>)
@@ -1156,7 +1156,7 @@ export default function AdminPanel() {
                 {maintenanceModeActive && (
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs font-semibold space-y-1.5 max-w-xl animate-pulse">
                     <span className="font-extrabold flex items-center gap-1 text-amber-800 uppercase tracking-widest"><AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" /> Live Simulation Banner:</span>
-                    <p className="leading-relaxed text-slate-700 font-medium">"Vyapar Mitra is undergoing rapid database updates. Offline caching will synchronize automatically upon core recovery."</p>
+                    <p className="leading-relaxed text-slate-700 font-medium">"Smart Vyapar is undergoing rapid database updates. Offline caching will synchronize automatically upon core recovery."</p>
                   </div>
                 )}
               </div>
@@ -1368,7 +1368,7 @@ export default function AdminPanel() {
                   </div>
 
                   <p className="text-xs text-slate-650 leading-relaxed font-semibold">
-                    Because permissions are mapped in the central <code className="font-mono bg-slate-100 p-0.5 text-slate-800 rounded">src/utils/permissions.ts</code> registry, any future visual sub-components, sidebars, or API endpoints do not require separate hardcoded checks. Adding a new tab simply means assigning it a central <code className="font-mono bg-slate-100 p-0.5 text-slate-800 rounded">Permission</code> key, making Vyapar Mitra enterprise-ready.
+                    Because permissions are mapped in the central <code className="font-mono bg-slate-100 p-0.5 text-slate-800 rounded">src/utils/permissions.ts</code> registry, any future visual sub-components, sidebars, or API endpoints do not require separate hardcoded checks. Adding a new tab simply means assigning it a central <code className="font-mono bg-slate-100 p-0.5 text-slate-800 rounded">Permission</code> key, making Smart Vyapar enterprise-ready.
                   </p>
 
                   <div className="border-t border-slate-200 pt-4 flex gap-1.5 flex-wrap">

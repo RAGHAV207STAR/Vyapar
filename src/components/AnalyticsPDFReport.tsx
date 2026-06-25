@@ -84,7 +84,7 @@ export const AnalyticsPDFReport = forwardRef<HTMLDivElement, ReportProps>((props
       {children}
       {/* Footer */}
       <div className="absolute bottom-6 left-0 right-0 text-center text-[10px] text-slate-400 font-bold tracking-wider uppercase">
-        Generated using Vyapar Mitra | Premium Goods &amp; Service Ledger Systems
+        Generated using Smart Vyapar | Premium Goods &amp; Service Ledger Systems
       </div>
     </div>
   );
@@ -248,7 +248,7 @@ export const AnalyticsPDFReport = forwardRef<HTMLDivElement, ReportProps>((props
                    </div>
                    <div>
                      <p className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest">Business Name</p>
-                     <p className="text-xs font-extrabold text-slate-800 mt-0.5 truncate max-w-[200px]">{profile?.shopName || 'Vyapar Mitra Partner'}</p>
+                     <p className="text-xs font-extrabold text-slate-800 mt-0.5 truncate max-w-[200px]">{profile?.shopName || 'Smart Vyapar Partner'}</p>
                    </div>
                  </div>
                  
@@ -417,7 +417,7 @@ export const AnalyticsPDFReport = forwardRef<HTMLDivElement, ReportProps>((props
            <div className="w-full flex items-center justify-center gap-4 mt-8">
              <div className="flex-1 h-px bg-slate-200"></div>
              <span className="text-xs font-serif text-slate-500 italic shrink-0">
-               Thank you for trusting <span className="font-bold font-sans not-italic text-slate-700">{profile?.shopName || 'Vyapar Mitra'}</span>
+               Thank you for trusting <span className="font-bold font-sans not-italic text-slate-700">{profile?.shopName || 'Smart Vyapar'}</span>
              </span>
              <div className="flex-1 h-px bg-slate-200"></div>
            </div>
@@ -426,7 +426,7 @@ export const AnalyticsPDFReport = forwardRef<HTMLDivElement, ReportProps>((props
              <div className="flex items-center gap-2">
                <ShieldCheck className="w-4 h-4 text-blue-600" />
                <span className="text-[10px] font-black tracking-[0.12em] text-slate-800 uppercase">
-                 {profile?.shopName || 'VYAPAR MITRA'} ANALYTICS ENGINE
+                 {profile?.shopName || 'SMART VYAPAR'} ANALYTICS ENGINE
                </span>
              </div>
              <p className="text-[8px] font-extrabold text-slate-400 uppercase tracking-[0.18em]">

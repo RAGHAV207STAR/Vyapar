@@ -179,6 +179,7 @@ const PAYMENT_OPTIONS: { value: PaymentMode; label: string }[] = [
 interface BillingSystemProps {
   onBillGenerated: (bill: Bill) => void;
   initialBillToEdit?: Bill | null;
+  initialCustomerDetails?: CustomerDetails | null;
   onCancelEdit?: () => void;
   billFormat?: 'A4' | 'A5' | '80mm' | '58mm';
   setBillFormat?: (format: 'A4' | 'A5' | '80mm' | '58mm') => void;
@@ -187,11 +188,12 @@ interface BillingSystemProps {
 export default function BillingSystem({ 
   onBillGenerated, 
   initialBillToEdit, 
+  initialCustomerDetails,
   onCancelEdit,
   billFormat = 'A4',
   setBillFormat
 }: BillingSystemProps) {
-  const { createBill, updateBill, bills, showToast, showConfirm, profile, saveProfile } = useBilling();
+  const { createBill, updateBill, bills, customers, saveCustomer, showToast, showConfirm, profile, saveProfile } = useBilling();
   const { inventory, reduceStockForInvoice } = useInventory();
   const { addTransaction } = useFinancial();
   const listStartRef = useRef<HTMLDivElement>(null);
@@ -210,6 +212,20 @@ export default function BillingSystem({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isScannerFocused, setIsScannerFocused] = useState(false);
   const [scannerSelectedIndex, setScannerSelectedIndex] = useState(0);
+
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [customerDropdownIndex, setCustomerDropdownIndex] = useState(0);
+  const customerInputRef = useRef<HTMLInputElement>(null);
+
+  const customerSuggestions = useMemo(() => {
+    if (!customerName.trim()) return [];
+    const query = customerName.toLowerCase().trim();
+    // Do not show dropdown if the name is an exact match already
+    const exactMatch = customers.find(c => c.name.toLowerCase() === query);
+    if (exactMatch && exactMatch.name === customerName) return [];
+    
+    return customers.filter(c => c.name.toLowerCase().includes(query) || c.phone.includes(query)).slice(0, 5);
+  }, [customerName, customers]);
 
   const scannerSuggestions = useMemo(() => {
     if (!barcodeText.trim()) return [];
@@ -491,10 +507,10 @@ export default function BillingSystem({
       setPaymentMode(initialBillToEdit.paymentMode || "CASH");
       setIsFullPayment(initialBillToEdit.balanceAmount === 0);
     } else {
-      setCustomerName("");
-      setCustomerPhone("");
-      setCustomerAddress("");
-      setCustomerGst("");
+      setCustomerName(initialCustomerDetails?.name || "");
+      setCustomerPhone(initialCustomerDetails?.phone || "");
+      setCustomerAddress(initialCustomerDetails?.address || "");
+      setCustomerGst(initialCustomerDetails?.gstNumber || "");
       setEnableOtherDetails(false);
       setTransport("");
       setVehicleNumber("");
@@ -521,7 +537,7 @@ export default function BillingSystem({
       setIsFullPayment(true);
       setNotes(profile?.terms || "");
     }
-  }, [initialBillToEdit, profile?.terms]);
+  }, [initialBillToEdit, initialCustomerDetails, profile?.terms]);
 
   // Auto-switch document format based on number of products (A5 for 1-2 items, A4 for 3+)
   useEffect(() => {
@@ -552,7 +568,12 @@ export default function BillingSystem({
     if (!hasCustomer && billFormat === 'A4') {
       if (setBillFormat) {
         setBillFormat('80mm');
-        showToast("Switched from A4 to Thermal format. Customer details are required for A4.", "info");
+        
+        // Only show this notification once per session
+        if (!sessionStorage.getItem("hasShownA4FormatToast")) {
+          showToast("Switched from A4 to Thermal format. Customer details are required for A4.", "info");
+          sessionStorage.setItem("hasShownA4FormatToast", "true");
+        }
       }
     }
   }, [customerName, billFormat, setBillFormat, showToast]);
@@ -664,7 +685,7 @@ export default function BillingSystem({
 
   const shouldShowGuide = !isAnyFeatureEnabled && !hasDismissedGuide;
 
-  // Extract past distinct clients for auto-completion shortcuts
+  // Extract past distinct clients for auto-completion shortcuts, combined with saved customers directory entries
   const previousCustomers = React.useMemo(() => {
     const list: {
       name: string;
@@ -674,6 +695,24 @@ export default function BillingSystem({
       otherDetails?: any;
     }[] = [];
     const absoluteKeys = new Set<string>();
+
+    // First, add all saved customers from directory
+    customers.forEach((c) => {
+      const name = c.name?.trim();
+      const phone = c.phone?.trim() || "";
+      const key = `${name.toLowerCase()}_${phone.toLowerCase()}`;
+      if (name && !absoluteKeys.has(key)) {
+        absoluteKeys.add(key);
+        list.push({
+          name: c.name,
+          phone: c.phone || "",
+          address: c.address || "",
+          gstNumber: c.gstNumber,
+        });
+      }
+    });
+
+    // Then, add other historical customers from bills
     bills.forEach((b) => {
       const name = b.customerDetails.name?.trim();
       const phone = b.customerDetails.phone?.trim() || "";
@@ -690,7 +729,7 @@ export default function BillingSystem({
       }
     });
     return list;
-  }, [bills]);
+  }, [bills, customers]);
 
   // Calculations including dynamic GST
   const subTotal = products.reduce((sum, p) => sum + (p.total || 0), 0);
@@ -1049,6 +1088,30 @@ export default function BillingSystem({
           }
         }
 
+        // Auto-save/update customer in custom customer directory
+        if (customerName.trim() && customerName.trim() !== "Cash / Walk-in" && customerName.trim() !== "Cash") {
+          try {
+            const cleanPhone = customerPhone.trim();
+            // Find if customer with same name or phone already exists
+            const existingCust = customers.find(c => 
+              c.name.trim().toLowerCase() === customerName.trim().toLowerCase() ||
+              (cleanPhone && c.phone.trim() === cleanPhone)
+            );
+            
+            saveCustomer({
+              id: existingCust?.id,
+              name: customerName.trim(),
+              phone: cleanPhone,
+              address: customerAddress.trim(),
+              gstNumber: customerGst.trim() || undefined
+            }).catch((err) => {
+              console.warn("Could not auto-save customer to directory:", err);
+            });
+          } catch (custErr) {
+            console.warn("Error triggering auto-save customer:", custErr);
+          }
+        }
+
         onBillGenerated(billResult);
       } catch (err: any) {
         console.error(err);
@@ -1292,19 +1355,77 @@ export default function BillingSystem({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 w-full">
+              <div className="space-y-2 w-full relative">
                 <label className="text-xs font-bold text-slate-700">
                   Customer Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
+                  ref={customerInputRef}
                   value={customerName}
-                  onChange={(e) => setCustomerName(formatShopName(e.target.value).replace(/\b\w/g, c => c.toUpperCase()))}
-                  onKeyDown={handleEnterToNext}
+                  onChange={(e) => {
+                    setCustomerName(formatShopName(e.target.value).replace(/\b\w/g, c => c.toUpperCase()));
+                    setShowCustomerDropdown(true);
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                  onKeyDown={(e) => {
+                    if (showCustomerDropdown && customerSuggestions.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setCustomerDropdownIndex((prev) => (prev < customerSuggestions.length - 1 ? prev + 1 : prev));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setCustomerDropdownIndex((prev) => (prev > 0 ? prev - 1 : 0));
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const selected = customerSuggestions[customerDropdownIndex];
+                        if (selected) {
+                          setCustomerName(selected.name);
+                          setCustomerPhone(selected.phone || "");
+                          setCustomerAddress(selected.address || "");
+                          setCustomerGst(selected.gstNumber || "");
+                          setShowCustomerDropdown(false);
+                        }
+                      }
+                    } else {
+                      handleEnterToNext(e);
+                    }
+                  }}
                   placeholder="e.g. Ramesh Kumar"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
                 />
+                
+                {/* Customer Autocomplete Dropdown */}
+                {showCustomerDropdown && customerSuggestions.length > 0 && (
+                  <div className="absolute z-50 top-[calc(100%+4px)] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                    {customerSuggestions.map((cust, idx) => (
+                      <div
+                        key={cust.id}
+                        className={`px-4 py-3 cursor-pointer flex justify-between items-center transition-colors ${idx === customerDropdownIndex ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-slate-50 border-l-4 border-transparent'}`}
+                        onMouseEnter={() => setCustomerDropdownIndex(idx)}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent blur
+                          setCustomerName(cust.name);
+                          setCustomerPhone(cust.phone || "");
+                          setCustomerAddress(cust.address || "");
+                          setCustomerGst(cust.gstNumber || "");
+                          setShowCustomerDropdown(false);
+                        }}
+                      >
+                        <div>
+                          <p className={`text-sm font-bold ${idx === customerDropdownIndex ? 'text-indigo-900' : 'text-slate-800'}`}>{cust.name}</p>
+                          {(cust.phone || cust.address) && (
+                            <p className="text-xs text-slate-500 font-medium truncate max-w-[200px]">
+                              {cust.phone} {cust.phone && cust.address ? '•' : ''} {cust.address}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 w-full">

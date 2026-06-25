@@ -377,7 +377,7 @@ export default function AnalyticsDashboard() {
   const handleExportXLSX = () => {
     try {
       const headerSummary = [
-        ["Vyapar Mitra Analytics Export Summary"],
+        ["Smart Vyapar Analytics Export Summary"],
         ["Export Date:", new Date().toLocaleDateString('en-IN')],
         ["Shop:", profile?.shopName || "Our Shop"],
         [],

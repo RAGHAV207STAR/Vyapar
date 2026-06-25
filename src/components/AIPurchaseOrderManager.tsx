@@ -338,6 +338,7 @@ export default function AIPurchaseOrderManager() {
 
   // Auto-save sync status tracking state (Feature 1)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [isPoGenerated, setIsPoGenerated] = useState(false);
 
   // Multi-Notes editing state for pending orders in active lifecycles
   const [editingNotesPoId, setEditingNotesPoId] = useState<string | null>(null);
@@ -990,6 +991,9 @@ export default function AIPurchaseOrderManager() {
   };
 
   useEffect(() => {
+    if (isPoGenerated) {
+      return;
+    }
     const delayDebounceFn = setTimeout(() => {
       triggerDraftAutoSave(
         poDraftItems,
@@ -1002,7 +1006,7 @@ export default function AIPurchaseOrderManager() {
     }, 1200);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [poDraftItems, draftSupplier, purchaseNotes, deliveryInstructions, supplierInstructions, activeDraftId]);
+  }, [poDraftItems, draftSupplier, purchaseNotes, deliveryInstructions, supplierInstructions, activeDraftId, isPoGenerated]);
 
   // Save manual draft trigger action
   const handleSaveDraftManual = (shouldRedirect = true) => {
@@ -1236,8 +1240,19 @@ export default function AIPurchaseOrderManager() {
     setEditingNotesPoId(null);
   };
 
+  const handleResetForm = () => {
+    setPoDraftItems([]);
+    setDraftSupplier('');
+    setPurchaseNotes('Please ensure all items meet standard quality checks before dispatch.');
+    setDeliveryInstructions(profile?.address || 'Shop #112, Main Business Market, Central Av.');
+    setSupplierInstructions('Any discrepancies in the invoice must be notified before shipping.');
+    setActiveDraftId(null);
+    setIsDuplicateReviewing(false);
+    setDuplicateWarningData(null);
+  };
+
   // --- STANDARD CUSTOM BUILDER DISPATCH WORKFLOW ---
-  const handleFinalizeCustomDraftFile = (forceCheck = false, saveAsNew = false) => {
+  const handleFinalizeCustomDraftFile = (forceCheck = false, saveAsNew = false, skipResetAndRedirect = false) => {
     if (poDraftItems.length === 0) {
       showToast("Your draft list is empty. Add elements first.", "warning");
       return;
@@ -1359,15 +1374,17 @@ export default function AIPurchaseOrderManager() {
       }
     }
 
-    setPoDraftItems([]);
-    setDraftSupplier('');
-    setPurchaseNotes('Please ensure all items meet standard quality checks before dispatch.');
-    setDeliveryInstructions(profile?.address || 'Shop #112, Main Business Market, Central Av.');
-    setSupplierInstructions('Any discrepancies in the invoice must be notified before shipping.');
-    setActiveDraftId(null);
-    setIsDuplicateReviewing(false);
-    setActiveTab('receiving');
-    setDuplicateWarningData(null);
+    if (!skipResetAndRedirect) {
+      setPoDraftItems([]);
+      setDraftSupplier('');
+      setPurchaseNotes('Please ensure all items meet standard quality checks before dispatch.');
+      setDeliveryInstructions(profile?.address || 'Shop #112, Main Business Market, Central Av.');
+      setSupplierInstructions('Any discrepancies in the invoice must be notified before shipping.');
+      setActiveDraftId(null);
+      setIsDuplicateReviewing(false);
+      setActiveTab('receiving');
+      setDuplicateWarningData(null);
+    }
   };
 
   // Dedicated email voucher router (Feature 3)
@@ -1376,8 +1393,8 @@ export default function AIPurchaseOrderManager() {
     const notesStr = po.purchaseNotes ? `%0D%0A%0D%0APurchase Notes: ${po.purchaseNotes}` : '';
     const deliveryStr = po.deliveryInstructions ? `%0D%0A%0D%0ADelivery Instructions: ${po.deliveryInstructions}` : '';
     const supplierStr = po.supplierInstructions ? `%0D%0A%0D%0ASupplier Instructions: ${po.supplierInstructions}` : '';
-    const subject = `Purchase Order ${po.id} - Vyapar Mitra`;
-    const body = `Dear Supplier,%0D%0A%0D%0APlease find our Purchase Order Details:%0D%0A%0D%0APO Number: ${po.id}%0D%0ASupplier: ${po.supplier}%0D%0ADate: ${new Date(po.date).toLocaleDateString()}%0D%0A%0D%0APending Lines to Fulfil:%0D%0A${itemsText}${notesStr}${deliveryStr}${supplierStr}%0D%0A%0D%0AEstimated Invoice Total: Rs.${formatNum(po.totalAmount || 0)}%0D%0A%0D%0APlease arrange immediate dispatch and confirm dispatch date.%0D%0A%0D%0AThank you,%0D%0ABy Vyapar Mitra Admin`;
+    const subject = `Purchase Order ${po.id} - Smart Vyapar`;
+    const body = `Dear Supplier,%0D%0A%0D%0APlease find our Purchase Order Details:%0D%0A%0D%0APO Number: ${po.id}%0D%0ASupplier: ${po.supplier}%0D%0ADate: ${new Date(po.date).toLocaleDateString()}%0D%0A%0D%0APending Lines to Fulfil:%0D%0A${itemsText}${notesStr}${deliveryStr}${supplierStr}%0D%0A%0D%0AEstimated Invoice Total: Rs.${formatNum(po.totalAmount || 0)}%0D%0A%0D%0APlease arrange immediate dispatch and confirm dispatch date.%0D%0A%0D%0AThank you,%0D%0ABy Smart Vyapar Admin`;
     
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
   };
@@ -1994,7 +2011,7 @@ export default function AIPurchaseOrderManager() {
   // WhatsApp message build link
   const triggerWhatsAppDispatch = (po: any) => {
     const itemsText = po.items.map((i: any) => `- *${i.productName}*: ${i.qty - (i.receivedQty || 0)} Units x ₹${i.cost}`).join('%0A');
-    let msg = `*VYAPAR MITRA PROCUREMENT ORDER*%0A%0A*PO Number*: ${po.id}%0A*Supplier*: ${po.supplier}%0A*Date*: ${new Date(po.date || po.createdDate || Date.now()).toLocaleDateString()}%0A%0A*Pending Lines to Fulfil*:%0A${itemsText}%0A%0A*Estimated Invoice Total*: ₹${formatNum(po.totalAmount || 0)}`;
+    let msg = `*SMART VYAPAR PROCUREMENT ORDER*%0A%0A*PO Number*: ${po.id}%0A*Supplier*: ${po.supplier}%0A*Date*: ${new Date(po.date || po.createdDate || Date.now()).toLocaleDateString()}%0A%0A*Pending Lines to Fulfil*:%0A${itemsText}%0A%0A*Estimated Invoice Total*: ₹${formatNum(po.totalAmount || 0)}`;
 
     if (po.purchaseNotes) msg += `%0A%0A*Purchase Notes*: ${po.purchaseNotes}`;
     if (po.deliveryInstructions) msg += `%0A*Delivery Instructions*: ${po.deliveryInstructions}`;
@@ -3441,6 +3458,7 @@ export default function AIPurchaseOrderManager() {
           activeDraftId={activeDraftId}
           handleAddManualLine={handleAddManualLine}
           handleSaveDraftManual={handleSaveDraftManual}
+          handleResetForm={handleResetForm}
           generatePO_PDF={localGeneratePO_PDF}
           triggerWhatsAppDispatch={triggerWhatsAppDispatch}
           triggerEmailDispatch={triggerEmailDispatch}
@@ -3894,7 +3912,7 @@ export default function AIPurchaseOrderManager() {
                       <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> AI Intake Automation:
                     </span>
                     <p className="text-slate-350">
-                      Pricing is set by the supplier. Once ordered, open the <strong>Fulfillment Tracker (Tab 3)</strong> to upload the supplier's digital bill. Vyapar Mitra's AI will automatically scan the bill, extract supplier rates directly, and count received stock!
+                      Pricing is set by the supplier. Once ordered, open the <strong>Fulfillment Tracker (Tab 3)</strong> to upload the supplier's digital bill. Smart Vyapar's AI will automatically scan the bill, extract supplier rates directly, and count received stock!
                     </p>
                   </div>
                 </div>
@@ -5173,7 +5191,7 @@ export default function AIPurchaseOrderManager() {
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   <span className="text-[9.5px] font-black uppercase text-emerald-400 tracking-widest block">Live Terminal: Active</span>
                 </div>
-                <h2 className="text-sm font-extrabold text-white">Vyapar Mitra Dedicated Inbound Ingestion Station</h2>
+                <h2 className="text-sm font-extrabold text-white">Smart Vyapar Dedicated Inbound Ingestion Station</h2>
               </div>
             </div>
 

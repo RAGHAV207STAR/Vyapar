@@ -844,7 +844,7 @@ export default function AIReplenishmentDashboard() {
           </div>
           <h2 className="text-xl md:text-2xl font-black text-slate-900">No Inventory Verified</h2>
           <p className="text-slate-500 text-sm leading-relaxed max-w-md">
-            Add products into your stock book and record invoice transactions under the billing catalog to unleash Vyapar Mitra's real-time AI replenishment metrics.
+            Add products into your stock book and record invoice transactions under the billing catalog to unleash Smart Vyapar's real-time AI replenishment metrics.
           </p>
           <a href="/inventory" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-750 font-bold text-sm">
             Go to Inventory Panel <ArrowRight className="w-4 h-4" />

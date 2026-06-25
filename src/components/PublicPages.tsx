@@ -72,7 +72,7 @@ const BLOG_POSTS = [
       <p class="text-xs text-slate-600 mt-1 leading-relaxed">Define clear minimum levels for every catalog group. A standard reorder point formula is: <br/><strong class="font-bold text-slate-800">Reorder Point (ROP) = (Average Daily Sales × Lead Time) + Safety Stock</strong>.</p>
       
       <h2 class="text-sm font-bold text-slate-900 mt-4 uppercase">3. Leveraging Real-Time Records</h2>
-      <p class="text-xs text-slate-600 mt-1 leading-relaxed">Vyapar Mitra automatically deducts items on checkout billing, visible instantly across multiple devices.</p>
+      <p class="text-xs text-slate-600 mt-1 leading-relaxed">Smart Vyapar automatically deducts items on checkout billing, visible instantly across multiple devices.</p>
     `
   },
   {
@@ -283,7 +283,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
 
   const faqs = [
     {
-      q: "Is Vyapar Mitra free?",
+      q: "Is Smart Vyapar free?",
       a: "Yes! The local Sandbox Mode is 100% free with absolutely no restrictions or monthly quotas. You can manage stocks, record invoices, and print custom thermal receipts or standard A4 PDFs without paying any subscription fee."
     },
     {
@@ -292,10 +292,10 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
     },
     {
       q: "Is my business data secure?",
-      a: "Security is our highest benchmark. Vyapar Mitra maintains rigid sandbox and cloud network boundaries. Your local cache remains isolated, and backups are encrypted via industry-grade SSL rules."
+      a: "Security is our highest benchmark. Smart Vyapar maintains rigid sandbox and cloud network boundaries. Your local cache remains isolated, and backups are encrypted via industry-grade SSL rules."
     },
     {
-      q: "Does Vyapar Mitra work completely offline?",
+      q: "Does Smart Vyapar work completely offline?",
       a: "Yes! If local internet goes down, the offline-first registry shell works flawlessly. Invoices draft at millisecond speed, stock deducts correctly, and updates back up to the browser database instantly. Once internet returns, you sync to Firestore with one tap."
     }
   ];
@@ -490,7 +490,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             <div className="max-w-6xl mx-auto space-y-10 py-4 border-t border-b border-slate-100/80">
               <div className="text-center space-y-2 max-w-xl mx-auto mb-4">
                 <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Interactive Retail Modules</h2>
-                <p className="text-xs text-slate-500 font-medium">Explore the high-speed interfaces built directly into Vyapar Mitra</p>
+                <p className="text-xs text-slate-500 font-medium">Explore the high-speed interfaces built directly into Smart Vyapar</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
                 
@@ -590,11 +590,11 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                 
                 <h3 className="text-2xl md:text-3.5xl font-black tracking-tight text-white leading-snug font-sans">
                   Onboard Your Shop Ledgers onto the <br className="hidden md:inline" />
-                  Most Trusted Vyapar Ecosystem
+                  Most Trusted Smart Vyapar Ecosystem
                 </h3>
                 
                 <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-semibold">
-                  Stop looking up manual ledger lists. Implement Vyapar Mitra on your browser or home computer now to gain advanced inventory forecasting, unified customer payment ledger tracking, and secure Firebase synchronization.
+                  Stop looking up manual ledger lists. Implement Smart Vyapar on your browser or home computer now to gain advanced inventory forecasting, unified customer payment ledger tracking, and secure Firebase synchronization.
                 </p>
                 
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -664,7 +664,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                 <span className="inline-block text-[10px] text-indigo-300 bg-indigo-500/25 px-3 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/20 leading-none">Unified Scan to Pay</span>
                 <h2 className="text-2xl md:text-3.5xl font-black tracking-tight text-white leading-tight">Instant UPI QR Receipt Watermarks</h2>
                 <p className="text-xs text-slate-300 leading-relaxed font-semibold">
-                  Vyapar Mitra watermarks digital Paytm, PhonePe, or Google Pay UPI QR paycodes dynamically on the bottom margins of standard bills. This skips payment-link queries at the cache desk, speeding up cashier lines.
+                  Smart Vyapar watermarks digital Paytm, PhonePe, or Google Pay UPI QR paycodes dynamically on the bottom margins of standard bills. This skips payment-link queries at the cache desk, speeding up cashier lines.
                 </p>
               </div>
             </div>
@@ -680,7 +680,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                 Empowering Local Merchants with Advanced Digital Ledger Frameworks
               </h1>
               <p className="text-sm text-slate-500 leading-relaxed font-semibold max-w-2xl">
-                Vyapar Mitra was born from a fundamental objective: small business owners, local utility stores, and retail boutiques shouldn't have to suffer bloated, expensive billing systems just to track their products and tax filings. We engineered Vyapar Mitra to be fast, private, compliant, and exceptionally reliable.
+                Smart Vyapar was born from a fundamental objective: small business owners, local utility stores, and retail boutiques shouldn't have to suffer bloated, expensive billing systems just to track their products and tax filings. We engineered Smart Vyapar to be fast, private, compliant, and exceptionally reliable.
               </p>
             </div>
 
@@ -695,7 +695,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-2xl space-y-3 shadow-3xs hover:border-indigo-200 transition-colors">
                 <h3 className="text-sm font-black text-slate-900 tracking-tight">Pristine Merchant Data Sovereignty</h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                  Unlike corporate platforms that scrap stock records, catalog prices, or client directories to monetize them inside third-party advertising grids, Vyapar Mitra maintains rigid boundaries. Your ledger remains on your local browser database, syncing exclusively to your authorized secure Firestore clusters.
+                  Unlike corporate platforms that scrap stock records, catalog prices, or client directories to monetize them inside third-party advertising grids, Smart Vyapar maintains rigid boundaries. Your ledger remains on your local browser database, syncing exclusively to your authorized secure Firestore clusters.
                 </p>
               </div>
             </div>
@@ -747,7 +747,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                   </div>
                 </div>
                 <p className="text-xs text-slate-355 leading-relaxed font-semibold">
-                  Vyapar Mitra in its entirety is formulated, customized, and owned wholly by developer Raghav Pratap. Focused on streamlining retail ledger logic, Raghav compiled this offline caching workspace with direct Firestore cloud adapters and 100% compliant receipt layouts so you can manage your shop floors with speed and certainty.
+                  Smart Vyapar in its entirety is formulated, customized, and owned wholly by developer Raghav Pratap. Focused on streamlining retail ledger logic, Raghav compiled this offline caching workspace with direct Firestore cloud adapters and 100% compliant receipt layouts so you can manage your shop floors with speed and certainty.
                 </p>
               </div>
             </div>
@@ -770,8 +770,8 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             <div className="space-y-3.5">
               {[
                 {
-                  q: "What features are offered in Vyapar Mitra's free Sandbox Mode?",
-                  a: "Vyapar Mitra is completely unrestricted in local Sandbox Mode! You can record products, manage safe stock buffers, create GST-compliant bills apply line-item cash discounts, calculate net earnings, track credit ledger clients, print standard A4 or 80mm thermal receipts, and view detailed Recharts profit telemetry with zero monthly subscription fees."
+                  q: "What features are offered in Smart Vyapar's free Sandbox Mode?",
+                  a: "Smart Vyapar is completely unrestricted in local Sandbox Mode! You can record products, manage safe stock buffers, create GST-compliant bills apply line-item cash discounts, calculate net earnings, track credit ledger clients, print standard A4 or 80mm thermal receipts, and view detailed Recharts profit telemetry with zero monthly subscription fees."
                 },
                 {
                   q: "How does the offline-first ledger cache operate during internet power loss?",
@@ -783,7 +783,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                 },
                 {
                   q: "Does the invoice software calculate divided CGST, SGST, and margins?",
-                  a: "Yes! Every single item added to catalogs maintains an explicit GST tax rate along with individual purchase acquisition and selling prices. When added to bills, Vyapar Mitra computes CGST and SGST taxes separate from operational gross margins, which automatically populate your quarterly tax summaries on the Financial page."
+                  a: "Yes! Every single item added to catalogs maintains an explicit GST tax rate along with individual purchase acquisition and selling prices. When added to bills, Smart Vyapar computes CGST and SGST taxes separate from operational gross margins, which automatically populate your quarterly tax summaries on the Financial page."
                 },
                 {
                   q: "How do I secure multi-device syncing over Firestore Cloud?",
@@ -833,7 +833,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             <div className="text-center space-y-4 max-w-xl mx-auto">
               <span className="inline-block px-4 py-1.5 bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 rounded-full font-sans text-xs font-bold uppercase tracking-widest border border-indigo-100">Merchant Digest</span>
               <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none animate-fade-in">
-                Vyapar Mitra Journal
+                Smart Vyapar Journal
               </h1>
               <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed">
                 Stay updated with professional merchant advice covering catalog velocity tracking, GST CGST/SGST tax compliance, and cash-flow leakages.
@@ -881,7 +881,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                 <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest font-sans leading-none">About the Developer & Owner</h4>
                 <p className="text-xl font-black text-slate-900 leading-none">RAGHAV PRATAP</p>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                  Raghav Pratap is the lead architect, developer, and owner of Vyapar Mitra. He created this high-efficiency workspace to provide micro-merchants with structured, offline-resilient invoicing operations.
+                  Raghav Pratap is the lead architect, developer, and owner of Smart Vyapar. He created this high-efficiency workspace to provide micro-merchants with structured, offline-resilient invoicing operations.
                 </p>
               </div>
             </div>
@@ -1082,7 +1082,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             <div className="space-y-4 text-xs text-slate-650 font-semibold leading-relaxed">
               <div className="bg-white p-6 border border-slate-200 rounded-2xl shadow-3xs">
                 <span className="font-extrabold text-slate-900 block mb-1 text-sm tracking-tight">1. Local Device Boundary Isolations</span>
-                <p>Vyapar Mitra operates on an offline-first caching framework. Your catalogs, lists, pricing indexes, reorder thresholds, and active customer ledger cards remain 100% localized within your browser storage structure until you choose to configure a secure Google document mirrored backup via Firebase.</p>
+                <p>Smart Vyapar operates on an offline-first caching framework. Your catalogs, lists, pricing indexes, reorder thresholds, and active customer ledger cards remain 100% localized within your browser storage structure until you choose to configure a secure Google document mirrored backup via Firebase.</p>
               </div>
               <div className="bg-white p-6 border border-slate-200 rounded-2xl shadow-3xs">
                 <span className="font-extrabold text-slate-900 block mb-1 text-sm tracking-tight">2. Secure Google Authentication Procedure</span>
@@ -1120,7 +1120,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               GST compliant Invoice Maker & Receipt Generator
             </h1>
             <p className="text-xs sm:text-sm text-slate-505 leading-relaxed font-semibold">
-              Issue perfect tax billing copies in seconds. Vyapar Mitra maps invoices dynamically matching both 80mm compact retail thermal units and standard Executive A4 compliance sheets.
+              Issue perfect tax billing copies in seconds. Smart Vyapar maps invoices dynamically matching both 80mm compact retail thermal units and standard Executive A4 compliance sheets.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1130,7 +1130,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               </div>
               <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-3xs hover:border-indigo-200 transition-colors">
                 <span className="text-xs font-black text-indigo-655 block mb-1.5 uppercase font-mono tracking-wider">02. Scan-to-Pay QR Embedder</span>
-                <p className="text-[11.5px] text-slate-500 font-semibold leading-relaxed">Embed Paytm/UPI payment addresses on invoice templates. Vyapar Mitra generates clean scan-to-pay QR graphics on receipt footers for instant bank settlements.</p>
+                <p className="text-[11.5px] text-slate-500 font-semibold leading-relaxed">Embed Paytm/UPI payment addresses on invoice templates. Smart Vyapar generates clean scan-to-pay QR graphics on receipt footers for instant bank settlements.</p>
               </div>
             </div>
           </div>
@@ -1167,8 +1167,8 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
               Online Invoice Generator & Retail Receipt Maker
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-semibold">
-              Compile beautiful billing receipts in seconds. Vyapar Mitra renders high-contrast, structured drafts optimized to satisfy local trade and tax audits.
+            <p className="text-xs sm:text-sm text-slate-505 leading-relaxed font-semibold">
+              Compile beautiful billing receipts in seconds. Smart Vyapar renders high-contrast, structured drafts optimized to satisfy local trade and tax audits.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1220,7 +1220,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               </span>
               
               <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">
-                Access your Vyapar Mitra workspace ledgers
+                Access your Smart Vyapar workspace ledgers
               </h1>
               
               <p className="text-xs text-slate-500 font-semibold leading-relaxed">
@@ -1548,12 +1548,12 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               <div className="flex items-center space-x-3">
                 <img 
                   src="/apple-touch-icon.png" 
-                  alt="Vyapar Mitra Logo" 
+                  alt="Smart Vyapar Logo" 
                   className="h-14 w-14 rounded-2xl object-contain border border-slate-700 bg-white p-1.5 shadow-xl shadow-indigo-500/20 ring-4 ring-indigo-500/10 animate-pulse" 
                   referrerPolicy="no-referrer"
                 />
                 <div className="leading-tight">
-                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 tracking-tight block font-sans">Vyapar Mitra</span>
+                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 tracking-tight block font-sans">Smart Vyapar</span>
                   <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest font-mono">Workspace OS v1.0</span>
                 </div>
               </div>
@@ -1664,7 +1664,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               <h5 className="font-extrabold text-white text-xs uppercase tracking-wider font-sans border-l-2 border-emerald-500 pl-2.5">Offline App Access</h5>
               <div className="space-y-3 text-slate-400">
                 <p className="text-xs leading-relaxed font-semibold">
-                  Install Vyapar Mitra directly on your phone or home PC for lightning-speed checkouts and zero latency.
+                  Install Smart Vyapar directly on your phone or home PC for lightning-speed checkouts and zero latency.
                 </p>
                 <button
                   onClick={async () => {
@@ -1675,12 +1675,12 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
                         const { outcome } = await promptEvent.userChoice;
                         if (outcome === 'accepted') {
                           (window as any).deferredInstallPrompt = null;
-                          showToast("Vyapar Mitra is launching and preparing local layout databases!", "success");
+                          showToast("Smart Vyapar is launching and preparing local layout databases!", "success");
                         }
                       } else {
                         showConfirm({
                           title: "App Installation Guide",
-                          message: "To install Vyapar Mitra: Open the application in a new browser tab/window, then select 'Add to Home screen' or 'Install page as app' from your browser's menu. This works in Chrome, Edge, and Safari.",
+                          message: "To install Smart Vyapar: Open the application in a new browser tab/window, then select 'Add to Home screen' or 'Install page as app' from your browser's menu. This works in Chrome, Edge, and Safari.",
                           confirmText: "Got it",
                           type: "info",
                           onConfirm: () => {}
@@ -1716,7 +1716,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
             </div>
             <p>
-              © {new Date().getFullYear()} <span className="text-slate-200 font-semibold">Vyapar Mitra</span>. All rights reserved.
+              © {new Date().getFullYear()} <span className="text-slate-200 font-semibold">Smart Vyapar</span>. All rights reserved.
             </p>
           </div>
 

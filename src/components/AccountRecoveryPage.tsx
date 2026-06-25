@@ -142,7 +142,7 @@ export default function AccountRecoveryPage() {
 
         <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2">
           <p className="text-xs font-semibold text-red-200 leading-relaxed">
-            ⚠️ <strong>Vyapar Mitra Notice:</strong> This workspace has been shut down and is offline. Active logins and database replication have been disabled. 
+            ⚠️ <strong>Smart Vyapar Notice:</strong> This workspace has been shut down and is offline. Active logins and database replication have been disabled. 
           </p>
           <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
             Restoring your profile will instantly reinstate your entire stock ledger, active customer databases, and historical transaction reports, exactly as of the scheduled date.

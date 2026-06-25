@@ -23,7 +23,8 @@ service cloud.firestore {
         'alternatePhone', 'emailAddress', 'address', 'logo', 'category', 'gstNumber', 
         'upiId', 'qrCode', 'website', 'terms', 'bankDetails', 'createdAt', 'status', 
         'deletedAt', 'recoveryDeadline', 'showBusinessIdOnInvoice', 'notificationSettings', 'registeredTokens', 'showUpiIdOnBill',
-        'role', 'invoicePrefix', 'barcodeScannerEnabled', 'businessDescription', 'socialLinks'
+        'role', 'invoicePrefix', 'barcodeScannerEnabled', 'businessDescription', 'socialLinks',
+        'documentFormatEnabled', 'customerDetailsEnabled'
       ]);
     }
 
@@ -44,6 +45,8 @@ service cloud.firestore {
         && (!data.keys().hasAny(['gstNumber']) || data.gstNumber is string)
         && (!data.keys().hasAny(['invoicePrefix']) || (data.invoicePrefix is string && data.invoicePrefix.size() <= 20))
         && (!data.keys().hasAny(['barcodeScannerEnabled']) || data.barcodeScannerEnabled is bool)
+        && (!data.keys().hasAny(['documentFormatEnabled']) || data.documentFormatEnabled is bool)
+        && (!data.keys().hasAny(['customerDetailsEnabled']) || data.customerDetailsEnabled is bool)
         && (!data.keys().hasAny(['businessDescription']) || data.businessDescription is string)
         && (!data.keys().hasAny(['socialLinks']) || data.socialLinks is string);
     }
@@ -91,7 +94,7 @@ service cloud.firestore {
       allow update: if isOwner(userId)
         && request.resource.data.uid == userId
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
+        && (!('email' in resource.data) || request.resource.data.email == resource.data.email)
         && (!('businessId' in resource.data) || request.resource.data.businessId == resource.data.businessId)
         && isValidUser(request.resource.data)
         && hasValidUserKeys(request.resource.data.keys())
@@ -158,7 +161,46 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.id == movementId
-        && request.resource.data.keys().hasOnly(['id', 'userId', 'productId', 'productName', 'date', 'type', 'quantity', 'reason', 'referenceId', 'sku', 'previousStock', 'newStock', 'actionType']);
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'productId', 'productName', 'date', 'type', 'quantity', 'reason', 'referenceId', 'sku', 'previousStock', 'newStock', 'actionType', 'poId', 'createdAt']);
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Purchase Order Drafts Collection Match Block
+    match /purchaseOrderDrafts/{draftId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == draftId;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // Purchase Orders Collection Match Block
+    match /purchaseOrders/{poId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == poId;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // Supplier History Collection Match Block
+    match /supplierHistory/{historyId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == historyId;
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
@@ -184,11 +226,13 @@ service cloud.firestore {
     }
     // Financial Transactions Collection Match Block
     match /financial_transactions/{txId} {
-      allow list, get: if isSignedIn() && resource.data.businessId == request.auth.uid;
+      allow list, get: if isSignedIn() 
+        && resource.data.businessId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
       allow create: if isSignedIn()
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.businessId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.businessId == request.auth.uid;
+        && request.resource.data.businessId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
+      allow update, delete: if isSignedIn() 
+        && resource.data.businessId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
     }
   }
 }

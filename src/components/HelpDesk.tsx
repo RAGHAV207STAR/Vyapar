@@ -188,8 +188,8 @@ export default function HelpDesk() {
         </div>
 
         <div className="shrink-0 relative z-10">
-          <a href="mailto:support.vyaparmitra@gmail.com?subject=Priority%20Support%20%2F%20Feature%20Request&body=Hello%20VyaparMitra%20Team%2C%0A%0AI%20am%20using%20the%20VyaparMitra%20billing%20and%20ERP%20applet.%20I'd%20love%20get%20assistance%20on%3A%0A%0A%5BDescribe%20your%20need%20or%20feature%20here%5D" className="inline-flex items-center gap-2.5 px-6 py-3 bg-white text-indigo-700 hover:bg-slate-50 text-xs sm:text-sm font-black rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
-            <Mail className="w-4 h-4 text-indigo-750 stroke-[2.5]" /> Contact support.vyaparmitra@gmail.com
+          <a href="mailto:support.smartvyapar@gmail.com?subject=Priority%20Support%20%2F%20Feature%20Request&body=Hello%20Smart%20Vyapar%20Team%2C%0A%0AI%20am%20using%20the%20Smart%20Vyapar%20billing%20and%20ERP%20applet.%20I'd%20love%20get%20assistance%20on%3A%0A%0A%5BDescribe%20your%20need%20or%20feature%20here%5D" className="inline-flex items-center gap-2.5 px-6 py-3 bg-white text-indigo-700 hover:bg-slate-50 text-xs sm:text-sm font-black rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
+            <Mail className="w-4 h-4 text-indigo-750 stroke-[2.5]" /> Contact support.smartvyapar@gmail.com
           </a>
         </div>
       </div>

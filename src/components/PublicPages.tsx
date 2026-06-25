@@ -42,10 +42,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { useBilling } from '../context/BillingContext';
-import dashboardMockup from '../assets/images/dashboard_mockup_new_1782007870837.jpg';
-import analyticsMockup from '../assets/images/analytics_mockup_new_1782007915906.jpg';
-import inventoryMockup from '../assets/images/inventory_mockup_new_1782007902629.jpg';
-import billingMockup from '../assets/images/billing_mockup_new_1782007887113.jpg';
+import dashboardMockup from '../assets/images/dashboard_mockup_v2_1782398903805.jpg';
+import analyticsMockup from '../assets/images/analytics_mockup_v2_1782398953187.jpg';
+import inventoryMockup from '../assets/images/inventory_mockup_v2_1782398937956.jpg';
+import billingMockup from '../assets/images/billing_mockup_v2_1782398920772.jpg';
 import aiBoyAvatar from '../assets/images/ai_boy_avatar_1780470481408.png';
 
 interface PublicPagesProps {
@@ -339,7 +339,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               referrerPolicy="no-referrer" 
             />
             <span className="text-base font-bold text-slate-900 tracking-tight">
-              Vyapar<span className="text-blue-600 font-extrabold ml-0.5 font-sans">Mitra</span>
+              Smart <span className="text-blue-600 font-extrabold ml-0.5 font-sans">Vyapar</span>
             </span>
           </a>
 
@@ -771,11 +771,23 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               {[
                 {
                   q: "What features are offered in Smart Vyapar's free Sandbox Mode?",
-                  a: "Smart Vyapar is completely unrestricted in local Sandbox Mode! You can record products, manage safe stock buffers, create GST-compliant bills apply line-item cash discounts, calculate net earnings, track credit ledger clients, print standard A4 or 80mm thermal receipts, and view detailed Recharts profit telemetry with zero monthly subscription fees."
+                  a: "Smart Vyapar is completely unrestricted in local Sandbox Mode! You can record products, manage safe stock buffers, create GST-compliant bills, apply line-item cash discounts, calculate net earnings, track credit ledger clients, print standard A4 or 80mm thermal receipts, and view detailed Recharts profit telemetry with zero monthly subscription fees."
                 },
                 {
                   q: "How does the offline-first ledger cache operate during internet power loss?",
                   a: "If local internet connections fail, our local caching shell ensures seamless operation. Sales checkouts compile at high speed, inventories deduct correctly in natural time, and invoices are held safely inside browser cookies/storage. The moment network is restored, you can back up and sync your logs back to Firestore on-demand."
+                },
+                {
+                  q: "Does the app support AI-powered Purchase Orders and Procurement?",
+                  a: "Yes! Smart Vyapar features an advanced AI Procurement & Purchase Order Manager that scans stock velocities, predicts run-out dates, and automatically generates replenishment drafts. Furthermore, our AI-powered bill reader lets you upload supplier invoices/bills to instantly extract prices and update received stock counts."
+                },
+                {
+                  q: "Can I export operational Excel spreadsheets or PDF reports?",
+                  a: "Absolutely! Smart Vyapar enables one-click exporting of your complete Operational Ledger into pristine Excel format (.xlsx) and generates publication-quality Enterprise Business Intelligence (BI) reports in PDF format with custom filters, charts, and metrics."
+                },
+                {
+                  q: "Does the app support standard 80mm/58mm thermal receipt printers?",
+                  a: "Yes! The system is highly optimized for retail counters and supports both executive standard A4 tax invoice printouts and fast 80mm or 58mm compact thermal receipts. You can configure and save your layout preferences in core Settings."
                 },
                 {
                   q: "Can I connect barcode scanner laser guns or use mobile camera tracking?",
@@ -1043,13 +1055,13 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
               {/* Action Area */}
               <div className="space-y-4 max-w-md mx-auto text-center">
                 <a 
-                  href="mailto:support.vyaparmitra@gmail.com"
+                  href="mailto:support.smartvyapar@gmail.com"
                   className="group flex items-center justify-center gap-3 w-full py-4 bg-indigo-600 hover:bg-indigo-705 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-indigo-500/20 transition-all duration-300 transform active:scale-[0.98]"
                 >
                   <div className="flex items-center justify-center h-6 w-6 rounded-md bg-white/10 text-white shrink-0">
                     <Mail className="h-4 w-4 stroke-[2.5]" />
                   </div>
-                  <span>Email: support.vyaparmitra@gmail.com</span>
+                  <span>Email: support.smartvyapar@gmail.com</span>
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
                 </a>
 

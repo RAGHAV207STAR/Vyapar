@@ -403,7 +403,7 @@ export default function AnalyticsDashboard() {
       const wsMain = XLSX.utils.aoa_to_sheet([...headerSummary, ...invoicesHeaders, ...invoicesRows]);
       XLSX.utils.book_append_sheet(wb, wsMain, "Business Summary");
 
-      XLSX.writeFile(wb, `VyaparMitra_Business_Report_${new Date().toISOString().substring(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `SmartVyapar_Business_Report_${new Date().toISOString().substring(0,10)}.xlsx`);
       showToast("Excel spreadsheet generated successfully!", "success");
     } catch (e: any) {
       showToast("Failed to generate Excel sheet: " + e.message, "error");

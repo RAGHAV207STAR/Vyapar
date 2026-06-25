@@ -217,6 +217,12 @@ export default function BillingSystem({
   const [customerDropdownIndex, setCustomerDropdownIndex] = useState(0);
   const customerInputRef = useRef<HTMLInputElement>(null);
 
+  // Customer Details states
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerGst, setCustomerGst] = useState("");
+
   const customerSuggestions = useMemo(() => {
     if (!customerName.trim()) return [];
     const query = customerName.toLowerCase().trim();
@@ -413,12 +419,6 @@ export default function BillingSystem({
 
   // Full payment toggle
   const [isFullPayment, setIsFullPayment] = useState<boolean>(true);
-
-  // Customer Details states
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [customerGst, setCustomerGst] = useState("");
 
   // Other Details states
   const [transport, setTransport] = useState("");

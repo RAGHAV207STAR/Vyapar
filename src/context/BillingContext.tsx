@@ -691,6 +691,24 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // Trigger the general cloud sync / fetch logic
           await fetchCloudData(firebaseUser.uid, profileLoaded);
           setIsLoading(false); // Finished loading everything safely
+
+          // Google Analytics Auth tracking
+          if (typeof window !== "undefined" && (window as any).gtag) {
+            const intent = localStorage.getItem('vyapar_auth_intent');
+            if (intent === 'signup') {
+              (window as any).gtag("event", "sign_up", {
+                method: "email_or_google",
+                user_id: firebaseUser.uid,
+                email: firebaseUser.email || "Unknown"
+              });
+            } else if (intent === 'login') {
+              (window as any).gtag("event", "login", {
+                method: "email_or_google",
+                user_id: firebaseUser.uid
+              });
+            }
+            localStorage.removeItem('vyapar_auth_intent');
+          }
         } else {
           localStorage.removeItem('vyapar_cached_user');
           localStorage.removeItem('sb_session_user');
@@ -769,6 +787,24 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem('sb_session_user', JSON.stringify(mockUser));
     loadLocalData(mockUser.uid);
     setIsLoading(false);
+
+    // Google Analytics mock auth tracking
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      const intent = localStorage.getItem('vyapar_auth_intent') || 'login';
+      if (intent === 'signup') {
+        (window as any).gtag("event", "sign_up", {
+          method: "sandbox_email",
+          user_id: mockUser.uid,
+          email: mockUser.email
+        });
+      } else {
+        (window as any).gtag("event", "login", {
+          method: "sandbox_email",
+          user_id: mockUser.uid
+        });
+      }
+      localStorage.removeItem('vyapar_auth_intent');
+    }
   };
 
   // Auth: Login function
@@ -1345,6 +1381,20 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem(`sb_bills_${user.uid}`, JSON.stringify(updated));
       return updated;
     });
+
+    // Google Analytics invoice generation tracking
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "create_invoice", {
+        invoice_number: invoiceNumber,
+        total_amount: totalAmount,
+        discount_amount: discountAmount,
+        gst_amount: gstAmount || 0,
+        payment_mode: paymentMode,
+        payment_status: paymentStatus,
+        customer_name: customerDetails?.name || "Unknown",
+        items_count: products.length
+      });
+    }
     
     // 2. Try to sync to clouds asynchronously so we don't block the UI
     if (isCloudConnected && isOnline) {
@@ -1439,6 +1489,18 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem(`sb_bills_${user.uid}`, JSON.stringify(updated));
       return updated;
     });
+
+    // Google Analytics invoice update tracking
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "update_invoice", {
+        invoice_id: billId,
+        invoice_number: existingBill?.invoiceNumber || "Unknown",
+        total_amount: totalAmount,
+        payment_mode: paymentMode,
+        payment_status: paymentStatus,
+        customer_name: customerDetails?.name || "Unknown"
+      });
+    }
     
     // 2. Try to sync to clouds asynchronously
     if (isCloudConnected && isOnline) {
@@ -1478,6 +1540,13 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem(`sb_bills_${user.uid}`, JSON.stringify(updated));
       return updated;
     });
+
+    // Google Analytics invoice deletion tracking
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "delete_invoice", {
+        invoice_id: billId
+      });
+    }
 
     // 2. Remove Cloud
     if (isCloudConnected && isOnline) {

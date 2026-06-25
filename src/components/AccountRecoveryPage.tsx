@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useBilling } from '../context/BillingContext';
-import { ShieldAlert, RefreshCw, LogOut, CheckCircle2, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, RefreshCw, LogOut, CheckCircle2, Trash2, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function AccountRecoveryPage() {
   const { profile, recoverAccount, permanentPurgeAccount, logout, showToast } = useBilling();
   const [daysRemaining, setDaysRemaining] = useState(30);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showConfirmPermanent, setShowConfirmPermanent] = useState(false);
   const [simulatedTimePassed, setSimulatedTimePassed] = useState(false);
 
   // Parse dates safely
@@ -33,10 +32,11 @@ export default function AccountRecoveryPage() {
 
   // Calculate actual remaining days
   useEffect(() => {
-    if (!profile?.recoveryDeadline) return;
+    const deadlineStr = profile?.recoveryDeadline;
+    if (!deadlineStr) return;
 
     const calculateDays = () => {
-      const deadline = new Date(profile.recoveryDeadline).getTime();
+      const deadline = new Date(deadlineStr).getTime();
       const now = new Date().getTime();
       const diffMs = deadline - now;
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -46,7 +46,7 @@ export default function AccountRecoveryPage() {
     setDaysRemaining(calculateDays());
 
     // Check if expired on load
-    const deadline = new Date(profile.recoveryDeadline).getTime();
+    const deadline = new Date(deadlineStr).getTime();
     if (new Date().getTime() > deadline) {
       handleAutoPurge();
     }

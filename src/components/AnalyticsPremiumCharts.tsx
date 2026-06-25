@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Brush
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart
 } from 'recharts';
 
 export function formatCompactIndianCurrency(amount: number) {
@@ -152,7 +152,7 @@ export const ProfitAnalysisPremiumCharts = ({ monthlyComparison }: any) => (
               { name: 'Mid Margin Products', value: 35, color: '#3b82f6' },
               { name: 'Low Margin Products', value: 20, color: '#f59e0b' }
             ]} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={2} dataKey="value" stroke="none">
-              {['#10b981', '#3b82f6', '#f59e0b'].map((color, index) => <Cell key={index} fill={color} />)}
+              {['#10b981', '#3b82f6', '#f59e0b'].map((color: string, index: number) => <Cell key={index} fill={color} />)}
             </Pie>
             <Tooltip content={<CustomTooltip isPercent />} />
             <Legend content={renderLegend} />
@@ -228,7 +228,7 @@ export const InventoryOverviewPremiumCharts = ({ inventory, chartData }: any) =>
               <YAxis axisLine={false} tickLine={false} width={60} tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }} tickFormatter={formatCompactIndianCurrency} />
               <Tooltip content={<CustomTooltip isCurrency />} cursor={{ fill: '#f8fafc' }} />
               <Bar dataKey="value" name="Value" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={30}>
-                {agingData.map((entry, index) => <Cell key={index} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444'][index % 4]} />)}
+                {agingData.map((entry: any, index: number) => <Cell key={index} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444'][index % 4]} />)}
               </Bar>
                           </BarChart>
           </ResponsiveContainer>
@@ -337,7 +337,7 @@ export const ProfitabilityPremiumCharts = ({ chartData, monthlyComparison }: any
           <LineChart data={monthlyComparison} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} width={40} tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }} tickFormatter={(v) => v + '%'} />
+            <YAxis axisLine={false} tickLine={false} width={40} tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }} tickFormatter={(v: any) => v + '%'} />
             <Tooltip content={<CustomTooltip isPercent />} />
             <Line type="monotone" dataKey="Margin" name="Net Margin" stroke="#10b981" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
           </LineChart>

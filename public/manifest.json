@@ -1,0 +1,24 @@
+{
+  "name": "Vyapar Mitra",
+  "short_name": "Vyapar Mitra",
+  "description": "Vyapar Mitra is a cloud-based billing, invoicing, inventory management and business analytics platform designed for shops, retailers and growing businesses.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

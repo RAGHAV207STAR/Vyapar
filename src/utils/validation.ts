@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Vyapar Mitra - Enterprise Input Validation & Formatting Utility
+ * Smart Vyapar - Enterprise Input Validation & Formatting Utility
  */
 
 /**

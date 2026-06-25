@@ -41,7 +41,7 @@ export async function generatePO_PDF({ po, inventory, formatNum, showToast, prof
     const poNum = po.id || "PO-DRAFT";
     const cleanSupplier = (po.supplier || 'Supplier').trim().replace(/[^a-zA-Z0-9]/g, '_');
     const formattedDate = new Date(po.date || Date.now()).toISOString().split('T')[0];
-    const pdfFilename = `VyaparMitra_PurchaseOrder_${poNum}_${cleanSupplier}_${formattedDate}.pdf`;
+    const pdfFilename = `SmartVyapar_PurchaseOrder_${poNum}_${cleanSupplier}_${formattedDate}.pdf`;
 
     const imgData = await toJpeg(container.firstElementChild as HTMLElement, {
       quality: 1,

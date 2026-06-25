@@ -308,7 +308,7 @@ export const generateExcelReport = (
   // Writing output file
   const filePrefix = profile?.shopName 
     ? profile.shopName.replace(/[^a-zA-Z0-9]/g, "_") 
-    : "VyaparMitra";
+    : "SmartVyapar";
   const fileName = `${filePrefix}_OperationalLedger_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`;
   
   XLSX.writeFile(wb, fileName);

@@ -74,20 +74,20 @@ export const globalMetadata: MetadataConfig = {
   ],
   author: 'Smart Vyapar',
   robots: 'index, follow',
-  canonical: 'https://smartvyapar.app/',
+  canonical: 'https://smartvyapar.vercel.app/',
   openGraph: {
     title: 'Smart Vyapar – Billing, Inventory & Business Management Software',
     description: 'Smart Vyapar is a cloud-based billing, invoicing, inventory management and business analytics platform designed for shops, retailers and growing businesses.',
     type: 'website',
-    url: 'https://smartvyapar.app/',
-    image: 'https://smartvyapar.app/og-image.png',
+    url: 'https://smartvyapar.vercel.app/',
+    image: 'https://smartvyapar.vercel.app/og-image.png',
     siteName: 'Smart Vyapar'
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Smart Vyapar – Billing, Inventory & Business Management Software',
     description: 'Smart Vyapar is a cloud-based billing, invoicing, inventory management and business analytics platform designed for shops, retailers and growing businesses.',
-    image: 'https://smartvyapar.app/og-image.png'
+    image: 'https://smartvyapar.vercel.app/og-image.png'
   }
 };
 

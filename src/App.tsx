@@ -114,6 +114,8 @@ function AppContent() {
 
   // Install promotion event handler
   const [canInstall, setCanInstall] = useState(false);
+  const [installProgress, setInstallProgress] = useState<number | null>(null);
+  const [installStatus, setInstallStatus] = useState<string>("");
 
   useEffect(() => {
     const handleBeforePrompt = (e: any) => {
@@ -127,41 +129,79 @@ function AppContent() {
     };
   }, []);
 
-  const handleSidebarInstall = async () => {
-    try {
-      const promptEvent = (window as any).deferredInstallPrompt;
-      if (promptEvent) {
-        await promptEvent.prompt();
-        const { outcome } = await promptEvent.userChoice;
-        if (outcome === "accepted") {
-          (window as any).deferredInstallPrompt = null;
-          setCanInstall(false);
-          showToast(
-            "Smart Vyapar local client preparing database layers!",
-            "success",
-          );
-        }
+  const runInstallProcess = (onComplete: () => void) => {
+    setInstallProgress(0);
+    setInstallStatus("Initializing local offline core...");
+    
+    let current = 0;
+    const interval = setInterval(() => {
+      current += Math.floor(Math.random() * 8) + 4; // increment by 4% to 11%
+      if (current >= 100) {
+        current = 100;
+        clearInterval(interval);
+        setInstallProgress(100);
+        setInstallStatus("Verifying app integrity... Launching installer!");
+        setTimeout(() => {
+          setInstallProgress(null);
+          setInstallStatus("");
+          onComplete();
+        }, 800);
       } else {
+        setInstallProgress(current);
+        if (current < 20) {
+          setInstallStatus("Downloading critical UI schemas...");
+        } else if (current < 40) {
+          setInstallStatus("Caching high-speed asset bundles...");
+        } else if (current < 65) {
+          setInstallStatus("Compiling indexed offline-first database tables...");
+        } else if (current < 85) {
+          setInstallStatus("Optimizing barcode camera recognition systems...");
+        } else {
+          setInstallStatus("Preparing real-time Firebase synchronization relays...");
+        }
+      }
+    }, 120); // Takes ~2.5 seconds total
+  };
+
+  const handleSidebarInstall = async () => {
+    if (installProgress !== null) return; // already running
+
+    runInstallProcess(async () => {
+      try {
+        const promptEvent = (window as any).deferredInstallPrompt;
+        if (promptEvent) {
+          await promptEvent.prompt();
+          const { outcome } = await promptEvent.userChoice;
+          if (outcome === "accepted") {
+            (window as any).deferredInstallPrompt = null;
+            setCanInstall(false);
+            showToast(
+              "Smart Vyapar local client preparing database layers!",
+              "success",
+            );
+          }
+        } else {
+          showConfirm({
+            title: "App Installation Guide",
+            message:
+              "To install Smart Vyapar: Open the application in a new browser tab/window, then select 'Add to Home screen' or 'Install page as app' from your browser's menu. This works in Chrome, Edge, and Safari.",
+            confirmText: "Understood",
+            type: "info",
+            onConfirm: () => {},
+          });
+        }
+      } catch (e) {
+        console.warn("PWA Prompt skipped or rejected", e);
         showConfirm({
-          title: "App Installation Guide",
+          title: "App Installation",
           message:
-            "To install Smart Vyapar: Open the application in a new browser tab/window, then select 'Add to Home screen' or 'Install page as app' from your browser's menu. This works in Chrome, Edge, and Safari.",
-          confirmText: "Understood",
+            "Your browser might restrict direct installation. Please use your browser menu options (e.g., 'Add to Home Screen' or 'Install App') instead.",
+          confirmText: "Okay",
           type: "info",
           onConfirm: () => {},
         });
       }
-    } catch (e) {
-      console.warn("PWA Prompt skipped or rejected", e);
-      showConfirm({
-        title: "App Installation",
-        message:
-          "Your browser might restrict direct installation. Please use your browser menu options (e.g., 'Add to Home Screen' or 'Install App') instead.",
-        confirmText: "Okay",
-        type: "info",
-        onConfirm: () => {},
-      });
-    }
+    });
   };
 
   const { requestPermission, permissionGranted } = useNotification();
@@ -250,6 +290,19 @@ function AppContent() {
       setActiveTab("Dashboard");
     }
   }, [user, profile]);
+
+  // Unified Google Analytics Pageview Tracking for Public pages and Workspace Tab changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      const pagePath = window.location.pathname;
+      const pageTitle = user && profile ? `Workspace - ${activeTab}` : document.title;
+      (window as any).gtag("config", "G-YVZN77SBD5", {
+        page_path: pagePath,
+        page_title: pageTitle,
+        user_id: user?.uid || "anonymous",
+      });
+    }
+  }, [currentPath, activeTab, user, profile]);
 
   // Custom unified tab/route mapping switcher
   const handleActiveTabChange = (tab: string) => {
@@ -379,6 +432,14 @@ function AppContent() {
       title = "Small Business Billing Guide & Blog | Smart Vyapar";
       desc =
         "Discover deep operational guide posts, inventory cycle count checklists, and billing speed optimization formulas written by retail experts.";
+    } else if (currentPath === "/updates") {
+      title = "Product Changelog & Updates | Smart Vyapar";
+      desc =
+        "Track our roadmap, latest features, performance improvements, and local thermal printer optimization updates in real-time.";
+    } else if (currentPath === "/gst-support") {
+      title = "GST Support, Invoicing Compliance & Calculator | Smart Vyapar";
+      desc =
+        "Learn CGST, SGST, IGST rules, composition vs regular schemes, and use our interactive real-time tax calculator to audit your billing.";
     } else if (currentPath.startsWith("/blog/")) {
       const slug = currentPath.substring(6);
       if (slug === "how-to-manage-inventory") {
@@ -681,6 +742,8 @@ function AppContent() {
       "/blog",
       "/login",
       "/signup",
+      "/updates",
+      "/gst-support",
     ].includes(currentPath) ||
       currentPath.startsWith("/blog/")) &&
     !(user && !profile);
@@ -1301,6 +1364,55 @@ function AppContent() {
         onClose={() => setCommandMenuOpen(false)}
         onNavigate={handleActiveTabChange}
       />
+
+      {/* Premium Install Progress Overlay/Modal */}
+      {installProgress !== null && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 select-none">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-[0_50px_100px_rgba(0,0,0,0.3)] max-w-md w-full text-center space-y-6 overflow-hidden relative"
+          >
+            {/* Elegant Background Accents */}
+            <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="mx-auto w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 relative">
+              <span className="text-4xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] animate-bounce">📲</span>
+              <div className="absolute -inset-1 border-2 border-indigo-500/30 rounded-3xl animate-ping opacity-25" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Downloading Smart Vyapar App
+              </h3>
+              <p className="text-xs font-bold text-slate-500 max-w-xs mx-auto">
+                Setting up lightning-fast local cache modules & offline databases for a zero-latency merchant experience.
+              </p>
+            </div>
+
+            {/* Percentage Bar */}
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between text-xs font-bold px-1">
+                <span className="text-blue-600 transition-colors duration-200">{installStatus}</span>
+                <span className="text-slate-800 font-mono bg-slate-100 px-2 py-0.5 rounded-md">{installProgress}%</span>
+              </div>
+              <div className="h-3.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50 p-0.5">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${installProgress}%` }}
+                  transition={{ ease: "easeInOut", duration: 0.15 }}
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 shadow-inner"
+                />
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase animate-pulse">
+              Please do not close this window
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

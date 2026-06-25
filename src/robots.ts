@@ -1,6 +1,6 @@
 /**
  * Smart Vyapar Programmatic Crawler Robots Configuration
- * Official Origin: https://smartvyapar.app
+ * Official Origin: https://smartvyapar.vercel.app
  */
 
 export interface RobotsConfig {
@@ -19,6 +19,6 @@ export default function robots(): RobotsConfig {
       '/private/',
       '/admin/',
     ],
-    sitemap: 'https://smartvyapar.app/sitemap.xml',
+    sitemap: 'https://smartvyapar.vercel.app/sitemap.xml',
   };
 }

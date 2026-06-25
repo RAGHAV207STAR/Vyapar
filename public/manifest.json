@@ -1,7 +1,7 @@
 {
-  "name": "Vyapar Mitra",
-  "short_name": "Vyapar Mitra",
-  "description": "Vyapar Mitra is a cloud-based billing, invoicing, inventory management and business analytics platform designed for shops, retailers and growing businesses.",
+  "name": "Smart Vyapar",
+  "short_name": "Smart Vyapar",
+  "description": "Smart Vyapar is a cloud-based billing, invoicing, inventory management and business analytics platform designed for shops, retailers and growing businesses.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",

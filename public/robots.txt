@@ -1,5 +1,5 @@
-# Search Engine Optimization for Vyapar Mitra
-# Official URL: https://vyaparmitra.app/
+# Search Engine Optimization for Smart Vyapar
+# Official URL: https://smartvyapar.app/
 
 User-agent: *
 
@@ -34,4 +34,4 @@ Disallow: /admin/
 Disallow: /firebase/
 
 # Cite dynamic production sitemap URL
-Sitemap: https://vyaparmitra.app/sitemap.xml
+Sitemap: https://smartvyapar.app/sitemap.xml

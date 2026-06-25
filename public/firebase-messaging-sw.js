@@ -24,7 +24,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Background message received: ', payload);
   
-  const title = payload.notification?.title || payload.data?.title || 'Vyapar Mitra';
+  const title = payload.notification?.title || payload.data?.title || 'Smart Vyapar';
   const options = {
     body: payload.notification?.body || payload.data?.body || 'New notification received',
     icon: '/android-chrome-192x192.png',

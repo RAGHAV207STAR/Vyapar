@@ -5,6 +5,9 @@ const ASSETS_TO_CACHE = [
   '/manifest.json'
 ];
 
+// Import Firebase Messaging service worker to unify PWA and Push Notifications
+importScripts('/firebase-messaging-sw.js');
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });

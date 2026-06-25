@@ -27,7 +27,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { auth, db, isFirebasePlaceholder, handleFirestoreError, OperationType, cleanUndefined } from '../firebase';
-import { UserProfile, Bill, ProductItem, CustomerDetails, Toast, ConfirmConfig, DataCollisionSession } from '../types';
+import { UserProfile, Bill, ProductItem, CustomerDetails, Toast, ConfirmConfig, DataCollisionSession, Customer } from '../types';
 
 interface BillingContextType {
   user: {
@@ -38,6 +38,7 @@ interface BillingContextType {
   } | null;
   profile: UserProfile | null;
   bills: Bill[];
+  customers: Customer[];
   isLoading: boolean;
   isOnline: boolean;
   isCloudConnected: boolean; // True if real Firebase is working
@@ -82,6 +83,8 @@ interface BillingContextType {
     notes?: string
   ) => Promise<Bill>;
   deleteBill: (billId: string) => Promise<void>;
+  saveCustomer: (customerData: Omit<Customer, 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
   updateBillPayment: (
     billId: string, 
     paidAmount: number, 
@@ -219,6 +222,22 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } catch (e) {
       console.warn("Could not read vyapar cached bills", e);
+    }
+    return [];
+  });
+
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    try {
+      const cachedUser = localStorage.getItem('vyapar_cached_user') || localStorage.getItem('sb_session_user');
+      if (cachedUser) {
+        const parsedUser = JSON.parse(cachedUser);
+        const cachedCustomers = localStorage.getItem(`sb_customers_${parsedUser.uid}`);
+        if (cachedCustomers) {
+          return JSON.parse(cachedCustomers);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not read vyapar cached customers", e);
     }
     return [];
   });
@@ -563,7 +582,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const userState = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || 'merchant@vyaparmitra.com',
-            displayName: firebaseUser.displayName || 'Vyapar Mitra Merchant',
+            displayName: firebaseUser.displayName || 'Smart Vyapar Merchant',
             photoURL: firebaseUser.photoURL || undefined
           };
           
@@ -764,13 +783,13 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } else {
       // Offline fallback login process
-      const defaultEmail = 'merchant@vyaparmitra.com';
+      const defaultEmail = 'merchant@smartvyapar.com';
       const safeUid = 'mock_user_' + defaultEmail.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
       if (intent === 'login') {
         const exists = await checkAccountExists(safeUid, defaultEmail);
         if (!exists) {
           setIsLoading(false);
-          const err = new Error("No registered account found on VYAPAR MITRA APP with this Gmail ID or Google account.");
+          const err = new Error("No registered account found on SMART VYAPAR APP with this Gmail ID or Google account.");
           setAuthError(err.message);
           throw err;
         }
@@ -822,7 +841,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } else {
           const matched = offlineUsers[email];
           if (!matched) {
-            const err = new Error("No registered account found on VYAPAR MITRA APP with this Gmail ID or Google account.");
+            const err = new Error("No registered account found on SMART VYAPAR APP with this Gmail ID or Google account.");
             setAuthError(err.message);
             throw err;
           }
@@ -831,7 +850,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
           const exists = await checkAccountExists(safeUid, email);
           if (!exists) {
-            const err = new Error("No registered account found on VYAPAR MITRA APP with this Gmail ID or Google account.");
+            const err = new Error("No registered account found on SMART VYAPAR APP with this Gmail ID or Google account.");
             setAuthError(err.message);
             throw err;
           }
@@ -1079,11 +1098,63 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
 
-    unsubListenersRef.current.push(unsubProfile, unsubBills);
+    // 3. Real-time changes to the user's Customers Collection
+    const customersRef = collection(db, 'customers');
+    const qCustomers = query(customersRef, where('userId', '==', uid));
+    const unsubCustomers = onSnapshot(qCustomers, (snapshot) => {
+      const cloudCustomers: Customer[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as Customer;
+        const normalizedCustomer = {
+          ...data,
+          createdAt: ensureISOString(data.createdAt),
+          updatedAt: ensureISOString(data.updatedAt),
+          isSynced: true
+        };
+        cloudCustomers.push(normalizedCustomer);
+      });
+
+      cloudCustomers.sort((a, b) => a.name.localeCompare(b.name));
+
+      setCustomers((prevCustomers) => {
+        const unsyncedLocal = prevCustomers.filter(c => !c.isSynced);
+        const merged = [...unsyncedLocal];
+        
+        cloudCustomers.forEach(cc => {
+          if (!merged.some(mc => mc.id === cc.id)) {
+            merged.push(cc);
+          } else {
+            const idx = merged.findIndex(mc => mc.id === cc.id);
+            if (idx !== -1 && merged[idx].isSynced) {
+              merged[idx] = cc;
+            }
+          }
+        });
+
+        merged.sort((a, b) => a.name.localeCompare(b.name));
+        
+        const mergedStr = JSON.stringify(merged);
+        const didChange = mergedStr !== JSON.stringify(prevCustomers);
+        if (didChange) {
+          localStorage.setItem(`sb_customers_${uid}`, mergedStr);
+          return merged;
+        }
+        return prevCustomers;
+      });
+    }, (error) => {
+      try {
+        handleFirestoreError(error, OperationType.GET, 'customers');
+      } catch (err) {
+        console.warn("Real-time customers listener error handled:", err);
+      }
+    });
+
+    unsubListenersRef.current.push(unsubProfile, unsubBills, unsubCustomers);
 
     return () => {
       unsubProfile();
       unsubBills();
+      unsubCustomers();
     };
   }, [isCloudConnected, isOnline, user]);
 
@@ -1230,6 +1301,9 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Clean undefined values from otherDetails
     const cleanOtherDetails = otherDetails ? Object.fromEntries(Object.entries(otherDetails).filter(([_, v]) => v !== undefined)) : undefined;
 
+    // Automatically save or update customer details
+    autoSaveCustomerFromBill(customerDetails);
+
     const newBill: Bill = {
       billId: `bill_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
       businessId,
@@ -1327,6 +1401,9 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Clean undefined values from otherDetails
     const cleanOtherDetails = otherDetails ? Object.fromEntries(Object.entries(otherDetails).filter(([_, v]) => v !== undefined)) : undefined;
 
+    // Automatically save or update customer details
+    autoSaveCustomerFromBill(customerDetails);
+
     const updatedBill: Bill = {
       ...existingBill,
       customerDetails,
@@ -1409,6 +1486,116 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // Save/Update Customer
+  const saveCustomer = async (customerData: Omit<Customer, 'userId' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) throw new Error("User must be logged in to save customer");
+
+    const id = customerData.id || `cust_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const now = new Date().toISOString();
+
+    const existingCustomer = customers.find(c => c.id === id);
+
+    const newCustomer: Customer = {
+      ...customerData,
+      id,
+      userId: user.uid,
+      createdAt: existingCustomer?.createdAt || now,
+      updatedAt: now,
+      isSynced: false
+    };
+
+    // 1. Update Locally
+    setCustomers(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      updated.push(newCustomer);
+      updated.sort((a, b) => a.name.localeCompare(b.name));
+      localStorage.setItem(`sb_customers_${user.uid}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Sync to Cloud
+    if (isCloudConnected && isOnline) {
+      const custRef = doc(db, 'customers', id);
+      setDoc(custRef, cleanUndefined({
+        ...newCustomer,
+        isSynced: true
+      })).then(() => {
+        setCustomers(prev => {
+          const updated = prev.map(c => c.id === id ? { ...c, isSynced: true } : c);
+          localStorage.setItem(`sb_customers_${user.uid}`, JSON.stringify(updated));
+          return updated;
+        });
+      }).catch(error => {
+        console.warn("Exception writing customer to cloud:", error);
+      });
+    }
+  };
+
+  // Delete Customer
+  const deleteCustomer = async (id: string) => {
+    if (!user) throw new Error("User must be logged in to delete customer");
+
+    // 1. Remove Locally
+    setCustomers(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      localStorage.setItem(`sb_customers_${user.uid}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Remove Cloud
+    if (isCloudConnected && isOnline) {
+      deleteDoc(doc(db, 'customers', id)).catch(error => {
+        console.warn("Background customer deletion error:", error);
+      });
+    }
+  };
+
+  // Helper to auto-save customer during bill creation/update
+  const autoSaveCustomerFromBill = async (details: CustomerDetails) => {
+    if (!details.name || details.name.trim() === '') return;
+    
+    // Find existing customer by exact name match (case insensitive)
+    const existing = customers.find(c => c.name.trim().toLowerCase() === details.name.trim().toLowerCase());
+    
+    if (existing) {
+      let needsUpdate = false;
+      const updatedData = { ...existing };
+      
+      if (details.phone && existing.phone !== details.phone) {
+        updatedData.phone = details.phone;
+        needsUpdate = true;
+      }
+      if (details.address && existing.address !== details.address) {
+        updatedData.address = details.address;
+        needsUpdate = true;
+      }
+      if (details.gstNumber && existing.gstNumber !== details.gstNumber) {
+        updatedData.gstNumber = details.gstNumber;
+        needsUpdate = true;
+      }
+      
+      if (needsUpdate) {
+        try {
+          await saveCustomer(updatedData);
+        } catch (err) {
+          console.warn("Auto update customer failed", err);
+        }
+      }
+    } else {
+      try {
+        await saveCustomer({
+          id: '',
+          name: details.name,
+          phone: details.phone || '',
+          address: details.address || '',
+          gstNumber: details.gstNumber || ''
+        });
+      } catch (err) {
+        console.warn("Auto save customer failed", err);
+      }
+    }
+  };
+
   // Update Bill Payment (Clear dues / register payments)
   const updateBillPayment = async (
     billId: string, 
@@ -1463,8 +1650,10 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!user) return;
     localStorage.removeItem(`sb_profile_${user.uid}`);
     localStorage.removeItem(`sb_bills_${user.uid}`);
+    localStorage.removeItem(`sb_customers_${user.uid}`);
     setProfile(null);
     setBills([]);
+    setCustomers([]);
   };
 
   // Initiate soft delete of the business account
@@ -1632,6 +1821,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setUser(null);
     setProfile(null);
     setBills([]);
+    setCustomers([]);
     showToast("🗑️ All business data permanently purged. Account deleted.", "error");
   };
 
@@ -1640,6 +1830,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       user,
       profile,
       bills,
+      customers,
       isLoading,
       isOnline,
       isCloudConnected,
@@ -1653,6 +1844,8 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createBill,
       updateBill,
       deleteBill,
+      saveCustomer,
+      deleteCustomer,
       updateBillPayment,
       syncDataOfflineFirst,
       clearLocalHistory,

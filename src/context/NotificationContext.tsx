@@ -291,10 +291,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           console.log('Foreground Push Message Received: ', payload);
           // Show foreground notification popups nicely
           if (payload.notification) {
-            new Notification(payload.notification.title || 'Vyapar Mitra SDK', {
-              body: payload.notification.body,
-              icon: '/android-chrome-192x192.png'
-            });
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(payload.notification!.title || 'Smart Vyapar SDK', {
+                  body: payload.notification!.body,
+                  icon: '/android-chrome-192x192.png'
+                });
+              });
+            } else {
+              new Notification(payload.notification.title || 'Smart Vyapar SDK', {
+                body: payload.notification.body,
+                icon: '/android-chrome-192x192.png'
+              });
+            }
           }
         });
         unsubscribeFCMRef.current = unsub;
@@ -396,10 +405,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // 1. Show UI browser alert foreground if permitted
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, {
-          body,
-          icon: '/android-chrome-192x192.png'
-        });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(title, {
+              body,
+              icon: '/android-chrome-192x192.png'
+            });
+          });
+        } else {
+          new Notification(title, {
+            body,
+            icon: '/android-chrome-192x192.png'
+          });
+        }
       } catch (_) {}
     }
 
@@ -577,7 +595,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       case 'security':
         await triggerNotification(
           "Security Alert", 
-          "New login detected on your Vyapar Mitra account.",
+          "New login detected on your Smart Vyapar account.",
           "security",
           true
         );

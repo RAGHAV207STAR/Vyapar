@@ -359,83 +359,88 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const migrateSandboxDataToCloudUser = (firebaseUid: string) => {
     try {
-      const mockUid = 'mock_user_merchant_vyaparmitra_com';
-      console.log(`[DATA MIGRATION] Scanning sandbox/mock data under UID ${mockUid} for migration to real UID ${firebaseUid}...`);
-      
-      // 1. Migrate Profile
-      const mockProfileStr = localStorage.getItem(`sb_profile_${mockUid}`);
-      const cloudProfileStr = localStorage.getItem(`sb_profile_${firebaseUid}`);
-      if (mockProfileStr && !cloudProfileStr) {
-        try {
-          const parsedProfile = JSON.parse(mockProfileStr);
-          if (parsedProfile) {
-            parsedProfile.uid = firebaseUid;
-            localStorage.setItem(`sb_profile_${firebaseUid}`, JSON.stringify(parsedProfile));
-            setProfile(parsedProfile);
-            console.log(`[DATA MIGRATION] Migrated profile successfully.`);
+      const mockUids = [
+        'mock_user_merchant_smartvyapar_com',
+        'mock_user_merchant_vyaparmitra_com'
+      ];
+      for (const mockUid of mockUids) {
+        console.log(`[DATA MIGRATION] Scanning sandbox/mock data under UID ${mockUid} for migration to real UID ${firebaseUid}...`);
+        
+        // 1. Migrate Profile
+        const mockProfileStr = localStorage.getItem(`sb_profile_${mockUid}`);
+        const cloudProfileStr = localStorage.getItem(`sb_profile_${firebaseUid}`);
+        if (mockProfileStr && !cloudProfileStr) {
+          try {
+            const parsedProfile = JSON.parse(mockProfileStr);
+            if (parsedProfile) {
+              parsedProfile.uid = firebaseUid;
+              localStorage.setItem(`sb_profile_${firebaseUid}`, JSON.stringify(parsedProfile));
+              setProfile(parsedProfile);
+              console.log(`[DATA MIGRATION] Migrated profile successfully.`);
+            }
+          } catch (pe) {
+            console.error("Failed parsing mock profile during migration:", pe);
           }
-        } catch (pe) {
-          console.error("Failed parsing mock profile during migration:", pe);
         }
-      }
 
-      // 2. Migrate Bills
-      const mockBillsStr = localStorage.getItem(`sb_bills_${mockUid}`);
-      const cloudBillsStr = localStorage.getItem(`sb_bills_${firebaseUid}`);
-      if (mockBillsStr && (!cloudBillsStr || JSON.parse(cloudBillsStr).length === 0)) {
-        try {
-          const parsedBills = JSON.parse(mockBillsStr) as Bill[];
-          if (Array.isArray(parsedBills) && parsedBills.length > 0) {
-            const migratedBills = parsedBills.map(b => ({
-              ...b,
-              userId: firebaseUid,
-              userUid: firebaseUid,
-              isSynced: false // Force sync to the cloud
-            }));
-            localStorage.setItem(`sb_bills_${firebaseUid}`, JSON.stringify(migratedBills));
-            setBills(migratedBills);
-            console.log(`[DATA MIGRATION] Migrated ${migratedBills.length} bills successfully and marked for sync.`);
+        // 2. Migrate Bills
+        const mockBillsStr = localStorage.getItem(`sb_bills_${mockUid}`);
+        const cloudBillsStr = localStorage.getItem(`sb_bills_${firebaseUid}`);
+        if (mockBillsStr && (!cloudBillsStr || JSON.parse(cloudBillsStr).length === 0)) {
+          try {
+            const parsedBills = JSON.parse(mockBillsStr) as Bill[];
+            if (Array.isArray(parsedBills) && parsedBills.length > 0) {
+              const migratedBills = parsedBills.map(b => ({
+                ...b,
+                userId: firebaseUid,
+                userUid: firebaseUid,
+                isSynced: false // Force sync to the cloud
+              }));
+              localStorage.setItem(`sb_bills_${firebaseUid}`, JSON.stringify(migratedBills));
+              setBills(migratedBills);
+              console.log(`[DATA MIGRATION] Migrated ${migratedBills.length} bills successfully and marked for sync.`);
+            }
+          } catch (be) {
+            console.error("Failed parsing mock bills during migration:", be);
           }
-        } catch (be) {
-          console.error("Failed parsing mock bills during migration:", be);
         }
-      }
 
-      // 3. Migrate Inventory
-      const mockInvStr = localStorage.getItem(`sb_inventory_${mockUid}`);
-      const cloudInvStr = localStorage.getItem(`sb_inventory_${firebaseUid}`);
-      if (mockInvStr && (!cloudInvStr || JSON.parse(cloudInvStr).length === 0)) {
-        try {
-          const parsedInv = JSON.parse(mockInvStr);
-          if (Array.isArray(parsedInv) && parsedInv.length > 0) {
-            const migratedInv = parsedInv.map(item => ({
-              ...item,
-              userId: firebaseUid
-            }));
-            localStorage.setItem(`sb_inventory_${firebaseUid}`, JSON.stringify(migratedInv));
-            console.log(`[DATA MIGRATION] Migrated ${migratedInv.length} inventory products successfully.`);
+        // 3. Migrate Inventory
+        const mockInvStr = localStorage.getItem(`sb_inventory_${mockUid}`);
+        const cloudInvStr = localStorage.getItem(`sb_inventory_${firebaseUid}`);
+        if (mockInvStr && (!cloudInvStr || JSON.parse(cloudInvStr).length === 0)) {
+          try {
+            const parsedInv = JSON.parse(mockInvStr);
+            if (Array.isArray(parsedInv) && parsedInv.length > 0) {
+              const migratedInv = parsedInv.map(item => ({
+                ...item,
+                userId: firebaseUid
+              }));
+              localStorage.setItem(`sb_inventory_${firebaseUid}`, JSON.stringify(migratedInv));
+              console.log(`[DATA MIGRATION] Migrated ${migratedInv.length} inventory products successfully.`);
+            }
+          } catch (ie) {
+            console.error("Failed parsing mock inventory during migration:", ie);
           }
-        } catch (ie) {
-          console.error("Failed parsing mock inventory during migration:", ie);
         }
-      }
 
-      // 4. Migrate Stock Movements
-      const mockMovStr = localStorage.getItem(`sb_movements_${mockUid}`);
-      const cloudMovStr = localStorage.getItem(`sb_movements_${firebaseUid}`);
-      if (mockMovStr && (!cloudMovStr || JSON.parse(cloudMovStr).length === 0)) {
-        try {
-          const parsedMov = JSON.parse(mockMovStr);
-          if (Array.isArray(parsedMov) && parsedMov.length > 0) {
-            const migratedMov = parsedMov.map(m => ({
-              ...m,
-              userId: firebaseUid
-            }));
-            localStorage.setItem(`sb_movements_${firebaseUid}`, JSON.stringify(migratedMov));
-            console.log(`[DATA MIGRATION] Migrated ${migratedMov.length} stock movements successfully.`);
+        // 4. Migrate Stock Movements
+        const mockMovStr = localStorage.getItem(`sb_movements_${mockUid}`);
+        const cloudMovStr = localStorage.getItem(`sb_movements_${firebaseUid}`);
+        if (mockMovStr && (!cloudMovStr || JSON.parse(cloudMovStr).length === 0)) {
+          try {
+            const parsedMov = JSON.parse(mockMovStr);
+            if (Array.isArray(parsedMov) && parsedMov.length > 0) {
+              const migratedMov = parsedMov.map(m => ({
+                ...m,
+                userId: firebaseUid
+              }));
+              localStorage.setItem(`sb_movements_${firebaseUid}`, JSON.stringify(migratedMov));
+              console.log(`[DATA MIGRATION] Migrated ${migratedMov.length} stock movements successfully.`);
+            }
+          } catch (me) {
+            console.error("Failed parsing mock movements during migration:", me);
           }
-        } catch (me) {
-          console.error("Failed parsing mock movements during migration:", me);
         }
       }
     } catch (err) {
@@ -581,7 +586,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
           const userState = {
             uid: firebaseUser.uid,
-            email: firebaseUser.email || 'merchant@vyaparmitra.com',
+            email: firebaseUser.email || 'merchant@smartvyapar.com',
             displayName: firebaseUser.displayName || 'Smart Vyapar Merchant',
             photoURL: firebaseUser.photoURL || undefined
           };
@@ -749,7 +754,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const triggerMockLogin = (email?: string, name?: string) => {
-    const defaultEmail = email || 'merchant@vyaparmitra.com';
+    const defaultEmail = email || 'merchant@smartvyapar.com';
     const defaultName = name || defaultEmail.split('@')[0].replace(/[^a-zA-Z]/g, ' ');
     const normalizedName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
     const safeUid = 'mock_user_' + defaultEmail.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();

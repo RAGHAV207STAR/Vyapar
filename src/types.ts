@@ -124,6 +124,7 @@ export interface CustomerDetails {
 
 export interface OtherDetails {
   transport?: string;
+  transportCost?: number;
   vehicleNumber?: string;
   placeOfSupply?: string;
   gstin?: string;

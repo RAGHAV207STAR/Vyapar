@@ -5,7 +5,7 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from './firebase-applet-config.json';
 
 export enum OperationType {
@@ -42,15 +42,6 @@ export const isFirebasePlaceholder =
 
 // Global console interceptors to capture and recover gracefully from Quota Exceeded / Resource Exhausted errors
 if (typeof window !== 'undefined') {
-  const triggerIntelligentContinuity = () => {
-    try {
-      localStorage.setItem('vyapar_intelligent_continuity_active', 'true');
-      localStorage.setItem('vyapar_sandbox_only', 'true'); // Automatically toggle sandbox mode to prevent further cloud requests
-      (window as any).__intelligentContinuityActive = true;
-      window.dispatchEvent(new CustomEvent('intelligent-continuity-triggered'));
-    } catch (_) {}
-  };
-
   const originalConsoleError = console.error;
   console.error = function (...args) {
     const msg = args.join(' ').toLowerCase();
@@ -62,16 +53,6 @@ if (typeof window !== 'undefined') {
       if (typeof console.debug === 'function') {
         console.debug('[Firestore Offline Notice Handled]:', ...args);
       }
-      return;
-    }
-    if (
-      msg.includes('quota-exceeded') ||
-      msg.includes('quota exceeded') || 
-      msg.includes('resource-exhausted') || 
-      msg.includes('backoff delay') ||
-      msg.includes('overloading the backend')
-    ) {
-      triggerIntelligentContinuity();
       return;
     }
     originalConsoleError.apply(console, args);
@@ -90,16 +71,6 @@ if (typeof window !== 'undefined') {
       }
       return;
     }
-    if (
-      msg.includes('quota-exceeded') ||
-      msg.includes('quota exceeded') || 
-      msg.includes('resource-exhausted') || 
-      msg.includes('backoff delay') ||
-      msg.includes('overloading the backend')
-    ) {
-      triggerIntelligentContinuity();
-      return;
-    }
     originalConsoleWarn.apply(console, args);
   };
 }
@@ -111,9 +82,7 @@ let firebaseAuth: any = null;
 if (!isFirebasePlaceholder) {
   try {
     firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    firebaseDb = initializeFirestore(firebaseApp, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-    }, firebaseConfig.firestoreDatabaseId);
+    firebaseDb = getFirestore(firebaseApp);
     firebaseAuth = getAuth(firebaseApp);
   } catch (error) {
     console.warn("Failed to initialize active Firebase. Falling back to local offline storage mode.", error);
@@ -137,56 +106,28 @@ export const cleanUndefined = (obj: any): any => {
   return result;
 };
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
   const errMessage = error instanceof Error ? error.message : String(error);
-  const errCode = (error as any)?.code || '';
-  const lowerMsg = `${errMessage} ${errCode}`.toLowerCase();
+  const errCode = error?.code || 'unknown';
 
-  const isQuotaOrNetworkError = 
-    lowerMsg.includes('resource-exhausted') ||
-    lowerMsg.includes('quota') ||
-    lowerMsg.includes('limit') ||
-    lowerMsg.includes('exhausted') ||
-    lowerMsg.includes('unavailable') ||
-    lowerMsg.includes('deadline') ||
-    lowerMsg.includes('network') ||
-    lowerMsg.includes('permission') ||
-    lowerMsg.includes('denied') ||
-    lowerMsg.includes('internal') ||
-    lowerMsg.includes('failed-precondition') ||
-    lowerMsg.includes('firebaseerror') ||
-    lowerMsg.includes('backoff');
-
-  const errInfo: FirestoreErrorInfo = {
-    error: errMessage,
+  const errInfo = {
+    collectionPath: path ? path.split('/')[0] : 'unknown',
+    documentId: path ? path.split('/').slice(1).join('/') : 'unknown',
+    firebaseErrorCode: errCode,
+    firebaseErrorMessage: errMessage,
+    operationType,
+    transactionStatus: 'failed_rolled_back',
+    fullPath: path,
+    timestamp: new Date().toISOString(),
     authInfo: {
       userId: auth?.currentUser?.uid || null,
-      email: auth?.currentUser?.email || null,
-      emailVerified: auth?.currentUser?.emailVerified || null,
-      isAnonymous: auth?.currentUser?.isAnonymous || null,
-      tenantId: auth?.currentUser?.tenantId || null,
-      providerInfo: auth?.currentUser?.providerData?.map((provider: any) => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
+      email: auth?.currentUser?.email || null
+    }
   };
 
   // Log complete Firebase details internally for diagnostics/monitoring
   console.error('[INTERNAL FIREBASE ERROR DIAGNOSTIC LOG]:', JSON.stringify(errInfo, null, 2));
 
-  if (isQuotaOrNetworkError) {
-    try {
-      localStorage.setItem('vyapar_intelligent_continuity_active', 'true');
-      localStorage.setItem('vyapar_sandbox_only', 'true'); // Move to offline sandbox mode to prevent any further quota hammer
-      (window as any).__intelligentContinuityActive = true;
-      window.dispatchEvent(new CustomEvent('intelligent-continuity-triggered'));
-    } catch (e) {}
-    
-    throw new Error("Your work is safely saved. Some updates will sync automatically when cloud services become available.");
-  }
-
-  throw new Error("Local database saved successfully. Your session is active and secure.");
+  // Propagate the actual error so the UI can notify the user and act accordingly
+  throw new Error(`Firebase operation failed [${errCode}]: ${errMessage}`);
 }

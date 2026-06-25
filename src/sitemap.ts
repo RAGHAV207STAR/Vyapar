@@ -1,6 +1,6 @@
 /**
  * Smart Vyapar Programmatic Dynamic Sitemap Configuration
- * Official Origin: https://vyaparmitra.app
+ * Official Origin: https://smartvyapar.app
  */
 
 export interface SitemapEntry {
@@ -11,7 +11,7 @@ export interface SitemapEntry {
 }
 
 export default function sitemap(): SitemapEntry[] {
-  const baseUrl = 'https://vyaparmitra.app';
+  const baseUrl = 'https://smartvyapar.app';
   const routes = [
     { path: '', changeFrequency: 'daily' as const, priority: 1.0 },
     { path: '/features', changeFrequency: 'weekly' as const, priority: 0.9 },

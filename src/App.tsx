@@ -504,7 +504,7 @@ function AppContent() {
     if (ogUrl)
       ogUrl.setAttribute(
         "content",
-        `https://vyaparmitra.vercel.app${currentPath}`,
+        `https://smartvyapar.vercel.app${currentPath}`,
       );
 
     const twTitle = document.querySelector('meta[property="twitter:title"]');
@@ -519,7 +519,7 @@ function AppContent() {
     if (twUrl)
       twUrl.setAttribute(
         "content",
-        `https://vyaparmitra.vercel.app${currentPath}`,
+        `https://smartvyapar.vercel.app${currentPath}`,
       );
 
     let canonicalLink = document.querySelector('link[rel="canonical"]');
@@ -530,7 +530,7 @@ function AppContent() {
     }
     canonicalLink.setAttribute(
       "href",
-      `https://vyaparmitra.vercel.app${currentPath}`,
+      `https://smartvyapar.vercel.app${currentPath}`,
     );
   }, [currentPath, activeTab, previewBill, user, profile]);
 

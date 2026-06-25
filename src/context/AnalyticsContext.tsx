@@ -343,7 +343,10 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!bill) return false;
       const d = getBillLocalDate(bill);
       const t = d.getTime();
-      return !isNaN(t) && t >= start && t <= end;
+      if (isNaN(t)) return false;
+      const passStart = start === null ? true : t >= start;
+      const passEnd = end === null ? true : t <= end;
+      return passStart && passEnd;
     });
   };
 
@@ -352,7 +355,10 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return (movements || []).filter((mov) => {
       if (!mov.date) return false;
       const t = new Date(mov.date).getTime();
-      return !isNaN(t) && t >= start && t <= end;
+      if (isNaN(t)) return false;
+      const passStart = start === null ? true : t >= start;
+      const passEnd = end === null ? true : t <= end;
+      return passStart && passEnd;
     });
   };
 

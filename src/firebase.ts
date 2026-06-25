@@ -94,6 +94,12 @@ export const auth = firebaseAuth;
 
 export const cleanUndefined = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') return obj;
+  
+  // Do not traverse custom classes (like Date, Firestore FieldValue/Timestamp, etc.)
+  if (obj.constructor && obj.constructor !== Object && obj.constructor !== Array) {
+    return obj;
+  }
+  
   if (Array.isArray(obj)) {
     return obj.map(cleanUndefined);
   }

@@ -1,5 +1,5 @@
 /**
- * Vyapar Mitra Programmatic Dynamic Sitemap Configuration
+ * Smart Vyapar Programmatic Dynamic Sitemap Configuration
  * Official Origin: https://vyaparmitra.app
  */
 

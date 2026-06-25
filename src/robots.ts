@@ -1,5 +1,5 @@
 /**
- * Vyapar Mitra Programmatic Crawler Robots Configuration
+ * Smart Vyapar Programmatic Crawler Robots Configuration
  * Official Origin: https://vyaparmitra.app
  */
 

@@ -122,6 +122,18 @@ export interface CustomerDetails {
   customerId?: string;
 }
 
+export interface Customer {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  address: string;
+  gstNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+  isSynced?: boolean;
+}
+
 export interface OtherDetails {
   transport?: string;
   transportCost?: number;

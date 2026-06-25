@@ -1,6 +1,6 @@
 {
-  "name": "Vyapar Mitra",
-  "description": "Vyapar Mitra is a modern business management platform for billing, inventory management, analytics, customer management, invoice generation, stock tracking, and business operations.",
+  "name": "Smart Vyapar",
+  "description": "Smart Vyapar is a modern business management platform for billing, inventory management, analytics, customer management, invoice generation, stock tracking, and business operations.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

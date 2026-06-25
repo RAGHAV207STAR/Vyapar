@@ -93,6 +93,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["billId", "userId", "customerDetails", "products", "totalAmount", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Stores customer details managed by the shop owner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "gstNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "phone", "address", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -107,6 +123,10 @@
     "notifications/{notificationId}": {
       "schema": "Notification",
       "description": "User notification messages"
+    },
+    "customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer profiles managed by users"
     }
   }
 }

@@ -79,7 +79,7 @@ async function startServer() {
       });
       const { contextData, moduleType } = req.body;
       
-      let prompt = "You are an expert AI business advisor for a retail business (Vyapar Mitra). Your goal is to provide advanced, premium, actionable insights based on business data. Use a highly professional modern tone. Format the response strictly in Markdown with clear sections, bold text for emphasis, and professional emojis. Focus on identifying actionable optimizations and operational leakage.";
+      let prompt = "You are an expert AI business advisor for a retail business (Smart Vyapar). Your goal is to provide advanced, premium, actionable insights based on business data. Use a highly professional modern tone. Format the response strictly in Markdown with clear sections, bold text for emphasis, and professional emojis. Focus on identifying actionable optimizations and operational leakage.";
       if (moduleType === "replenishment") {
         prompt += `\n\nAnalyze these active inventory depletion advisories. Highlight which items are critical, project when they will run out, and suggest restocking quantities to optimize cash flow.\nData Context: ${JSON.stringify(contextData)}`;
       } else if (moduleType === "analytics") {
@@ -112,7 +112,7 @@ async function startServer() {
       } catch (geminiError: any) {
         console.info("Gemini service is operating under active query control; generating dynamic edge analysis.");
         
-        const brandName = "VYAPAR MITRA";
+        const brandName = "SMART VYAPAR";
         const nowStr = new Date().toLocaleDateString('en-IN', { dateStyle: 'medium' });
         
         if (moduleType === "replenishment") {

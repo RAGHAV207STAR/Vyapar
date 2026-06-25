@@ -224,6 +224,19 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['id', 'userId', 'title', 'body', 'type', 'read', 'createdAt', 'isSynced']);
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
+    // Customers Collection Match Block
+    match /customers/{customerId} {
+      allow list, get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.id == customerId;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // Financial Transactions Collection Match Block
     match /financial_transactions/{txId} {
       allow list, get: if isSignedIn() 

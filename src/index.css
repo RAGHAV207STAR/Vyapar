@@ -180,14 +180,37 @@ div.bg-white.border.rounded-\[2.5rem\] {
 }
 
 /* Printable Invoice Tweaks */
-
-
 @media print {
+  body > *:not(#printable-invoice) {
+    display: none !important;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #printable-invoice {
+    position: static !important;
+    display: block !important;
+    margin: 0 auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+  }
+  #printable-invoice * {
+    visibility: visible !important;
+  }
+  .noprint, .print\:hidden {
+    display: none !important;
+  }
   .print-page-ct {
     color: #000000 !important;
     background-color: #ffffff !important;
-    font-size: 11px !important;
-    line-height: 1.4 !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   .print-page-ct * {
     color: #000000 !important;

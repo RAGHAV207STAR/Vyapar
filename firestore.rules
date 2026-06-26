@@ -247,5 +247,13 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() 
         && resource.data.businessId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
     }
+
+    // Shared PDFs Collection Match Block (Public read, public create, authenticated update/delete)
+    match /shared_pdfs/{pdfId} {
+      allow get: if true; // Public view link
+      allow create: if request.resource.data.id == pdfId
+        && (request.resource.data.userId == 'anonymous' || (isSignedIn() && request.resource.data.userId == request.auth.uid));
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
   }
 }

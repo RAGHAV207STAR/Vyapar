@@ -109,6 +109,21 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "name", "phone", "address", "createdAt", "updatedAt"]
+    },
+    "SharedPdf": {
+      "title": "Shared PDF",
+      "description": "Temporary public access links for PDF invoices shared over WhatsApp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "shopName": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "pdfBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "invoiceNumber", "shopName", "totalAmount", "pdfBase64", "createdAt"]
     }
   },
   "firestore": {
@@ -127,6 +142,10 @@
     "customers/{customerId}": {
       "schema": "Customer",
       "description": "Customer profiles managed by users"
+    },
+    "shared_pdfs/{pdfId}": {
+      "schema": "SharedPdf",
+      "description": "Temporary public PDF invoices uploaded to view/download online"
     }
   }
 }

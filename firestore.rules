@@ -147,7 +147,7 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.id == itemId
-        && request.resource.data.keys().hasOnly(['id', 'userId', 'name', 'category', 'sku', 'hsn', 'unit', 'purchasePrice', 'sellingPrice', 'stock', 'minStockAlert', 'description', 'createdAt', 'imageUrl', 'supplierName']);
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'name', 'category', 'sku', 'barcode', 'hsn', 'unit', 'purchasePrice', 'sellingPrice', 'stock', 'minStockAlert', 'description', 'createdAt', 'imageUrl', 'supplierName']);
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId

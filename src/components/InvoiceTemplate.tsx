@@ -7,7 +7,6 @@ import React, { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Download,
   Printer,
@@ -945,7 +944,16 @@ Thank you for your business!`;
                 {(() => {
                   const qr = getInvoiceQRData();
                   if (qr.type === 'upi') {
-                    return <QRCodeSVG value={qr.data} size={64} level="M" />;
+                    return (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qr.data)}`}
+                        alt="UPI QR Code"
+                        className="w-[64px] h-[64px] object-contain"
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
+                        style={{ imageRendering: '-webkit-optimize-contrast' }}
+                      />
+                    );
                   } else if (qr.type === 'image') {
                     return (
                       <img
@@ -1249,7 +1257,16 @@ Thank you for your business!`;
                       {(() => {
                         const qr = getInvoiceQRData();
                         if (qr.type === 'upi') {
-                          return <QRCodeSVG value={qr.data} size={billFormat === 'A5' ? 42 : 56} level="M" />;
+                          return (
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qr.data)}`}
+                              alt="UPI QR Code"
+                              className={`${billFormat === 'A5' ? 'w-[42px] h-[42px]' : 'w-14 h-14'} object-contain`}
+                              crossOrigin="anonymous"
+                              referrerPolicy="no-referrer"
+                              style={{ imageRendering: '-webkit-optimize-contrast' }}
+                            />
+                          );
                         } else if (qr.type === 'image') {
                           return (
                             <img

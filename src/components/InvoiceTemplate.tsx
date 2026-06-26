@@ -27,7 +27,7 @@ import { Bill } from "../types";
 import { db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import appLogo from '../assets/images/app_logo_1780216474773.png';
-import { createFastComputedStyleProxy } from "../utils/colorPatch";
+import { createFastComputedStyleProxy } from "../utils/stylePatch";
 
 interface InvoiceTemplateProps {
   bill: Bill;
@@ -114,7 +114,7 @@ const numberToWords = (num: number): string => {
   return str.trim() + " Rupees Only";
 };
 
-// Helper function to convert a single oklch color string to standard rgb/rgba (imported from utils/colorPatch)
+// Helper function to convert a single oklch color string to standard rgb/rgba (imported from utils/stylePatch)
 
 const getAppHostname = (): string => {
   return "smartvyapar.vercel.app";

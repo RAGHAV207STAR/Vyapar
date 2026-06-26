@@ -24,7 +24,10 @@ import {
 } from "lucide-react";
 import { useBilling } from "../context/BillingContext";
 import { Bill } from "../types";
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 import appLogo from '../assets/images/app_logo_1780216474773.png';
+import { createFastComputedStyleProxy } from "../utils/colorPatch";
 
 interface InvoiceTemplateProps {
   bill: Bill;
@@ -111,148 +114,7 @@ const numberToWords = (num: number): string => {
   return str.trim() + " Rupees Only";
 };
 
-// Helper function to convert a single oklch color string to standard rgb/rgba
-function convertOklchToRgb(oklchStr: string): string {
-  try {
-    const match = oklchStr.match(/oklch\(\s*([+-]?\d*(?:\.\d+)?%?)\s+([+-]?\d*(?:\.\d+)?)\s+([+-]?\d*(?:\.\d+)?(?:deg)?)(?:\s*\/\s*([+-]?\d*(?:\.\d+)?%?))?\s*\)/i) ||
-                  oklchStr.match(/oklch\(\s*([+-]?\d*(?:\.\d+)?%?)\s*,\s*([+-]?\d*(?:\.\d+)?)\s*,\s*([+-]?\d*(?:\.\d+)?(?:deg)?)(?:\s*,\s*([+-]?\d*(?:\.\d+)?%?))?\s*\)/i);
-    
-    if (!match) {
-      return "rgb(0, 0, 0)";
-    }
-
-    const L_val = match[1];
-    const C_val = match[2];
-    const H_val = match[3];
-    const A_val = match[4];
-
-    let L = parseFloat(L_val);
-    if (L_val.endsWith("%")) L = L / 100;
-
-    const C = parseFloat(C_val);
-    const H = parseFloat(H_val);
-
-    let alpha = 1;
-    if (A_val) {
-      alpha = parseFloat(A_val);
-      if (A_val.endsWith("%")) alpha = alpha / 100;
-    }
-
-    // Mathematical conversion from OKLCH to Linear RGB
-    const hRad = (H * Math.PI) / 180;
-    const a = C * Math.cos(hRad);
-    const b = C * Math.sin(hRad);
-
-    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-
-    const l_lin = l_ * l_ * l_;
-    const m_lin = m_ * m_ * m_;
-    const s_lin = s_ * s_ * s_;
-
-    const r_lin = +4.0767416621 * l_lin - 3.3077115913 * m_lin + 0.2309699292 * s_lin;
-    const g_lin = -1.2684380046 * l_lin + 2.6097574011 * m_lin - 0.3413193965 * s_lin;
-    const b_lin = -0.0041960863 * l_lin - 0.7034186145 * m_lin + 1.7076147010 * s_lin;
-
-    const transformChannel = (c: number) => {
-      if (c <= 0.0031308) return 12.92 * c;
-      return 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-    };
-
-    const r = Math.round(Math.max(0, Math.min(1, transformChannel(r_lin))) * 255);
-    const g = Math.round(Math.max(0, Math.min(1, transformChannel(g_lin))) * 255);
-    const b_col = Math.round(Math.max(0, Math.min(1, transformChannel(b_lin))) * 255);
-
-    if (alpha === 1) {
-      return `rgb(${r}, ${g}, ${b_col})`;
-    } else {
-      return `rgba(${r}, ${g}, ${b_col}, ${alpha})`;
-    }
-  } catch (err) {
-    console.warn("oklch conversion error:", err);
-    return "rgb(255, 255, 255)";
-  }
-}
-
-// Safely parses and replaces all unsupported colors within complex properties (e.g. background-image linear-gradient, box-shadow)
-function replaceUnsupportedColors(str: string): string {
-  if (!str || typeof str !== "string") {
-    return str;
-  }
-  let newStr = str;
-  if (newStr.includes("oklch")) {
-    newStr = newStr.replace(/oklch\([^)]+\)/g, (match) => {
-      return convertOklchToRgb(match);
-    });
-  }
-  if (newStr.includes("oklab")) {
-    newStr = newStr.replace(/oklab\([^)]+\)/g, (match) => {
-      const lMatch = match.match(/oklab\(\s*([+-]?\d*(?:\.\d+)?%?)/);
-      if (lMatch) {
-         let L = parseFloat(lMatch[1]);
-         if (lMatch[1].endsWith("%")) L = L / 100;
-         const v = Math.round(L * 255);
-         return `rgb(${v}, ${v}, ${v})`;
-      }
-      return "rgb(200, 200, 200)";
-    });
-  }
-  // html2canvas doesn't support color-mix
-  if (newStr.includes("color-mix")) {
-     // We do a simple crude fallback to grey or whatever because regex for nested parens is hard.
-     // But we can just replace the whole color-mix(...) if we assume no deeper nesting than color-mix(in oklab, rgb(0,0,0) 50%, rgb(255,255,255))
-     // Actually, replacing color-mix entirely might be too broad if it contains multiple items. Let's just catch color-mix(in oklab...
-     newStr = newStr.replace(/color-mix\([^)]+\)/g, "rgb(128, 128, 128)");
-  }
-  // html2canvas doesn't support color(...)
-  if (newStr.includes("color(")) {
-    newStr = newStr.replace(/color\([^)]+\)/g, "rgb(128, 128, 128)");
-  }
-  return newStr;
-}
-
-const colorProps = new Set([
-  'color', 'backgroundColor', 'background-color',
-  'borderTopColor', 'border-top-color',
-  'borderRightColor', 'border-right-color',
-  'borderBottomColor', 'border-bottom-color',
-  'borderLeftColor', 'border-left-color',
-  'borderColor', 'border-color',
-  'outlineColor', 'outline-color',
-  'boxShadow', 'box-shadow',
-  'textShadow', 'text-shadow',
-  'backgroundImage', 'background-image',
-  'fill', 'stroke'
-]);
-
-function createFastComputedStyleProxy(styles: CSSStyleDeclaration) {
-  return new Proxy(styles, {
-    get(target, prop) {
-      if (prop === "getPropertyValue") {
-        return (propertyName: string) => {
-          const val = target.getPropertyValue(propertyName);
-          if (typeof val === "string" && colorProps.has(propertyName) && (val.includes("oklch") || val.includes("oklab") || val.includes("color-mix") || val.includes("color("))) {
-            return replaceUnsupportedColors(val);
-          }
-          return val;
-        };
-      }
-      if (typeof prop === "string" && colorProps.has(prop)) {
-        const val = target[prop as any];
-        if (typeof val === "string" && (val.includes("oklch") || val.includes("oklab") || val.includes("color-mix") || val.includes("color("))) {
-          return replaceUnsupportedColors(val);
-        }
-        return val;
-      }
-      const value = target[prop as any];
-      if (typeof value === "function") {
-        return (value as any).bind(target);
-      }
-      return value;
-    },
-  });
-}
+// Helper function to convert a single oklch color string to standard rgb/rgba (imported from utils/colorPatch)
 
 const getAppHostname = (): string => {
   return "smartvyapar.vercel.app";
@@ -279,7 +141,7 @@ export default function InvoiceTemplate({
   setBillFormat,
   onEdit,
 }: InvoiceTemplateProps) {
-  const { profile, showToast } = useBilling();
+  const { user, profile, showToast } = useBilling();
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const getInvoiceQRData = (): { type: 'upi' | 'image' | 'none', data: string } => {
@@ -309,6 +171,9 @@ export default function InvoiceTemplate({
   // States to track share copying
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
+
+  const [printImages, setPrintImages] = useState<string[]>([]);
+  const [isPrintingPrecompile, setIsPrintingPrecompile] = useState(false);
 
   const handleCloseShareModal = () => {
     setIsShareModalOpen(false);
@@ -485,7 +350,7 @@ export default function InvoiceTemplate({
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const custName = bill.customerDetails?.name?.trim();
     const hasCustomer = !!(custName && custName !== "" && custName !== "Cash / Walk-in" && custName !== "Cash");
     if (!hasCustomer && billFormat === 'A4') {
@@ -499,63 +364,123 @@ export default function InvoiceTemplate({
     }
 
     try {
+      setIsPrintingPrecompile(true);
+      showToast("Preparing pixel-perfect print layout...", "info");
+      
+      // Let React yield to ensure UI is ready
+      await new Promise((r) => setTimeout(r, 100));
+
+      const canvases = await generateCanvases(exportInvoiceRef, isBW);
+      if (!canvases || canvases.length === 0) {
+        showToast("Failed to compile print layout.", "error");
+        setIsPrintingPrecompile(false);
+        return;
+      }
+
+      // Convert canvases to base64 images
+      const images = canvases.map(canvas => canvas.toDataURL("image/png"));
+      setPrintImages(images);
+
+      // Wait a tiny bit for React state to update and mount high-resolution images in DOM
+      await new Promise((r) => setTimeout(r, 200));
+
       window.print();
     } catch (err) {
-      console.error("Print spooling error:", err);
+      console.error("Print pre-compilation error:", err);
       showToast("Print failed to initiate.", "error");
+    } finally {
+      setIsPrintingPrecompile(false);
+      // Clean up print images after the spooler starts (blocking in most browsers, safe after window.print() finishes)
+      setPrintImages([]);
     }
   };
 
   const formattedTotal = (bill.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
 
-  const shareText = `🧾 *INVOICE: ${bill.invoiceNumber}*
-🏢 *Business:* ${profile?.shopName || "Our Store"}
-💰 *Grand Total:* ₹${formattedTotal}
-👤 *Customer:* ${bill.customerDetails.name}
+  // Generate detailed itemized description for text share
+  const itemsText = (bill.products || [])
+    .map((p, idx) => `  ${idx + 1}. *${p.name}* (x${p.quantity}) - ₹${(p.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`)
+    .join("\n");
+
+  const cgstAmount = bill.cgstAmount || (bill.gstAmount || 0) / 2;
+  const sgstAmount = bill.sgstAmount || (bill.gstAmount || 0) / 2;
+
+  const shareText = `🧾 *INVOICE BILL SUMMARY*
+---------------------------------------
+📄 *Invoice No:* ${bill.invoiceNumber}
 📅 *Date:* ${new Date(bill.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+🏢 *Business:* ${profile?.shopName || "Our Store"}
+👤 *Customer:* ${bill.customerDetails?.name || "Walk-in"}
+---------------------------------------
+🛍️ *Items Purchased:*
+${itemsText || "  No items listed"}
+---------------------------------------
+💵 *Subtotal:* ₹${(bill.subTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+📊 *CGST:* ₹${cgstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+📊 *SGST:* ₹${sgstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+💰 *Grand Total:* ₹${formattedTotal}
 
 Thank you for your business!`;
 
   const handleShare = async () => {
-    const custName = bill.customerDetails?.name?.trim();
-    const hasCustomer = !!(custName && custName !== "" && custName !== "Cash / Walk-in" && custName !== "Cash");
-    if (!hasCustomer && billFormat === 'A4') {
-      showToast("Cannot share A4 bill without customer details. Standard Thermal format is permitted.", "error");
-      return;
-    }
     setIsSharing(true);
+    showToast("Opening WhatsApp...", "info");
+    
     try {
-      const blob = await generatePDFBlob(exportInvoiceRef, isBW);
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setSharePdfBlobUrl(url);
+      const cleanPhone = bill.customerDetails?.phone ? bill.customerDetails.phone.replace(/\D/g, '') : '';
+      const phoneWithCountry = cleanPhone ? (cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone) : '';
+
+      const encodedText = encodeURIComponent(shareText);
+
+      // App URLs
+      const appUrl = phoneWithCountry 
+        ? `whatsapp://send?phone=${phoneWithCountry}&text=${encodedText}`
+        : `whatsapp://send?text=${encodedText}`;
+
+      // Web WhatsApp link
+      const webUrl = phoneWithCountry
+        ? `https://web.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodedText}`
+        : `https://web.whatsapp.com/send?text=${encodedText}`;
+
+      // Universal wa.me URL
+      const waMeUrl = phoneWithCountry
+        ? `https://wa.me/${phoneWithCountry}?text=${encodedText}`
+        : `https://wa.me/?text=${encodedText}`;
+
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        typeof navigator !== "undefined" ? navigator.userAgent : ""
+      );
+
+      if (isMobile) {
+        // Try opening appUrl first, fallback to waMeUrl if needed
+        const start = Date.now();
+        window.location.href = appUrl;
         
-        // Instant standard download of PDF format so user has it immediately
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Invoice_${bill.invoiceNumber}${isBW ? "_BW" : ""}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        showToast("PDF downloaded! Opening WhatsApp...", "success");
-
-        // Clean and prepare the customer phone number
-        const cleanPhone = bill.customerDetails?.phone ? bill.customerDetails.phone.replace(/\D/g, '') : '';
-        const phoneWithCountry = cleanPhone ? (cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone) : '';
-
-        // Open WhatsApp instantly with the formatted bill text
-        const whatsappUrl = phoneWithCountry 
-          ? `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(shareText)}`
-          : `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-
-        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        setTimeout(() => {
+          if (Date.now() - start < 1500) {
+            window.open(waMeUrl, "_blank", "noopener,noreferrer");
+          }
+        }, 800);
       } else {
-        showToast("Failed to compile or generate PDF.", "error");
+        // Desktop blur checks
+        let appOpened = false;
+        const onBlur = () => {
+          appOpened = true;
+        };
+        window.addEventListener("blur", onBlur);
+        window.location.href = appUrl;
+
+        setTimeout(() => {
+          window.removeEventListener("blur", onBlur);
+          if (!appOpened && !document.hidden) {
+            window.open(webUrl, "_blank", "noopener,noreferrer");
+          }
+        }, 1200);
       }
+      showToast("WhatsApp launched!", "success");
     } catch (err: any) {
       console.warn("WhatsApp share flow issue:", err);
-      showToast("Could not initiate WhatsApp sharing.", "error");
+      showToast("Could not launch WhatsApp sharing.", "error");
     } finally {
       setIsSharing(false);
     }
@@ -1816,12 +1741,17 @@ Thank you for your business!`;
               <button
                 type="button"
                 onClick={handlePrint}
-                className="p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 shadow-sm hover:bg-slate-50 transition-all cursor-pointer active:scale-95 flex items-center justify-center"
+                disabled={isPrintingPrecompile || isDownloading || isSharing}
+                className="p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 shadow-sm hover:bg-slate-50 transition-all cursor-pointer active:scale-95 flex items-center justify-center disabled:bg-slate-100 disabled:text-slate-400"
               >
-                <Printer className="w-4.5 h-4.5 text-slate-500" />
+                {isPrintingPrecompile ? (
+                  <RefreshCw className="w-4.5 h-4.5 text-slate-500 animate-spin" />
+                ) : (
+                  <Printer className="w-4.5 h-4.5 text-slate-500" />
+                )}
               </button>
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md z-10">
-                Print Invoice
+                {isPrintingPrecompile ? "Compiling..." : "Print Invoice"}
               </span>
             </div>
 
@@ -1830,7 +1760,7 @@ Thank you for your business!`;
               <button
                 type="button"
                 onClick={handleShare}
-                disabled={isSharing || isDownloading}
+                disabled={isSharing || isDownloading || isPrintingPrecompile}
                 className="p-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
               >
                 {isSharing ? (
@@ -1855,7 +1785,7 @@ Thank you for your business!`;
               <button
                 type="button"
                 onClick={() => handleDownloadPDF(isBW)}
-                disabled={isDownloading || isSharing}
+                disabled={isDownloading || isSharing || isPrintingPrecompile}
                 className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
               >
                {isDownloading ? (
@@ -1944,15 +1874,36 @@ Thank you for your business!`;
       {typeof window !== 'undefined' && createPortal(
         <div 
           id="printable-invoice"
-          className="absolute top-0 pointer-events-none -z-[9999] print:h-auto print:opacity-100 print:overflow-visible print:z-50 print:left-0"
+          className="absolute top-0 pointer-events-none -z-[9999] print:h-auto print:opacity-100 print:overflow-visible print:z-50 print:left-0 print:w-full"
           style={{
             left: "-9999px",
             width: (billFormat === 'A4' || billFormat === 'A5') ? (billFormat === 'A5' ? "561px" : "794px") : (billFormat === '80mm' ? "300px" : "220px"),
           }}
         >
+          {/* Active Canvas Print Images (Only visible during print, perfectly sized) */}
+          {printImages.length > 0 && (
+            <div className="hidden print:flex print:flex-col print:space-y-0 print:w-full">
+              {printImages.map((src, idx) => (
+                <img
+                  key={idx}
+                  src={src}
+                  alt={`Page ${idx + 1}`}
+                  className="w-full object-contain block"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    pageBreakAfter: idx < printImages.length - 1 ? 'always' : 'auto',
+                    breakAfter: idx < printImages.length - 1 ? 'page' : 'auto',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Raw HTML markup (Hidden during print if high-res print images are compiled) */}
           <div
             ref={exportInvoiceRef}
-            className="flex flex-col space-y-0"
+            className={`flex flex-col space-y-0 ${printImages.length > 0 ? "print:hidden" : ""}`}
             style={{
               width: (billFormat === 'A4' || billFormat === 'A5') ? (billFormat === 'A5' ? "561px" : "794px") : (billFormat === '80mm' ? "300px" : "220px"),
             }}
@@ -2017,10 +1968,12 @@ Thank you for your business!`;
 
           <div className="space-y-3">
             {/* WhatsApp */}
-            <a
-              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* WhatsApp */}
+            <button
+              onClick={() => {
+                handleCloseShareModal();
+                handleShare();
+              }}
               className="flex items-center gap-3.5 p-3.5 bg-emerald-50 hover:bg-emerald-100/90 active:scale-98 text-emerald-800 rounded-2xl transition border border-emerald-100 font-bold text-sm w-full cursor-pointer"
             >
               <div className="bg-emerald-500 text-white rounded-xl p-2 shrink-0 flex items-center justify-center">
@@ -2036,7 +1989,7 @@ Thank you for your business!`;
                 <p className="font-extrabold text-emerald-950 leading-none">Share to WhatsApp</p>
                 <p className="text-[10px] text-emerald-600 font-semibold mt-1">Compose message directly in web or mobile app</p>
               </div>
-            </a>
+            </button>
 
             {/* Email */}
             <a

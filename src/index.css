@@ -194,6 +194,8 @@ div.bg-white.border.rounded-\[2.5rem\] {
   #printable-invoice {
     position: static !important;
     display: block !important;
+    width: 100% !important;
+    left: 0 !important;
     margin: 0 auto !important;
     visibility: visible !important;
     opacity: 1 !important;

@@ -1,3 +1,5 @@
+import './utils/colorPatch';
+
 if (typeof (Object as any).hasOwn !== 'function') {
   (Object as any).hasOwn = function (object: any, property: PropertyKey): boolean {
     if (object === null || object === undefined) {

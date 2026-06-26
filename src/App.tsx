@@ -50,6 +50,7 @@ import AccountRecoveryPage from "./components/AccountRecoveryPage";
 import { Bill, CustomerDetails } from "./types";
 import CustomerDirectory from "./components/CustomerDirectory";
 import PublicPages from "./components/PublicPages";
+import PublicInvoiceViewer from "./components/PublicInvoiceViewer";
 import { useNotification } from "./context/NotificationContext";
 import NotificationCenter from "./components/NotificationCenter";
 import ConflictReconciliationModal from "./components/ConflictReconciliationModal";
@@ -706,6 +707,18 @@ function AppContent() {
           </motion.p>
         </div>
       </div>
+    );
+  }
+
+  // Public Shared PDF view interception
+  if (currentPath.startsWith("/view-pdf/")) {
+    const pdfId = currentPath.replace("/view-pdf/", "");
+    return (
+      <>
+        <PublicInvoiceViewer pdfId={pdfId} />
+        <ToastContainer />
+        <ConfirmModal />
+      </>
     );
   }
 

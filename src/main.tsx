@@ -1,4 +1,4 @@
-import './utils/cssColorPatch';
+import './utils/stylePatch';
 
 if (typeof (Object as any).hasOwn !== 'function') {
   (Object as any).hasOwn = function (object: any, property: PropertyKey): boolean {

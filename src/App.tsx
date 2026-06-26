@@ -564,7 +564,7 @@ function AppContent() {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl)
       ogUrl.setAttribute(
-        "content",
+         "content",
         `https://smartvyapar.vercel.app${currentPath}`,
       );
 
@@ -579,7 +579,7 @@ function AppContent() {
     const twUrl = document.querySelector('meta[property="twitter:url"]');
     if (twUrl)
       twUrl.setAttribute(
-        "content",
+         "content",
         `https://smartvyapar.vercel.app${currentPath}`,
       );
 

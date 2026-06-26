@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { useBilling } from './BillingContext';
 import { useInventory } from './InventoryContext';
 import { Bill } from '../types';
@@ -382,31 +382,34 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   
   const cacheToday = useMemo(() => {
     const { start, end } = getStampRange("TODAY");
-    return computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
-  }, [bills, inventoryLookups, movements]);
+    const res = computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
+    return { ...globalCache, ...res };
+  }, [globalCache, bills, inventoryLookups, movements]);
 
   const cacheThisWeek = useMemo(() => {
     const { start, end } = getStampRange("THIS_WEEK");
-    return computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
-  }, [bills, inventoryLookups, movements]);
+    const res = computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
+    return { ...globalCache, ...res };
+  }, [globalCache, bills, inventoryLookups, movements]);
 
   const cacheThisMonth = useMemo(() => {
     const { start, end } = getStampRange("THIS_MONTH");
-    return computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
-  }, [bills, inventoryLookups, movements]);
+    const res = computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
+    return { ...globalCache, ...res };
+  }, [globalCache, bills, inventoryLookups, movements]);
   
-  const getCacheForRange = (rangeKey: string, customStart?: string, customEnd?: string) => {
-    if (rangeKey === "ALL") return { ...globalCache };
-    if (rangeKey === "TODAY") return { ...globalCache, ...cacheToday };
-    if (rangeKey === "THIS_WEEK") return { ...globalCache, ...cacheThisWeek };
-    if (rangeKey === "THIS_MONTH") return { ...globalCache, ...cacheThisMonth };
+  const getCacheForRange = useCallback((rangeKey: string, customStart?: string, customEnd?: string) => {
+    if (rangeKey === "ALL") return globalCache;
+    if (rangeKey === "TODAY") return cacheToday;
+    if (rangeKey === "THIS_WEEK") return cacheThisWeek;
+    if (rangeKey === "THIS_MONTH") return cacheThisMonth;
 
     const { start, end } = getStampRange(rangeKey, customStart, customEnd);
     const res = computeAnalyticsForBills(getFilteredBills(start, end), getFilteredMovements(start, end));
     return { ...globalCache, ...res };
-  };
+  }, [globalCache, cacheToday, cacheThisWeek, cacheThisMonth, bills, inventoryLookups, movements]);
 
-  const chartDataForRange = (rangeKey: string, customStart?: string, customEnd?: string) => {
+  const chartDataForRange = useCallback((rangeKey: string, customStart?: string, customEnd?: string) => {
     const { start, end } = getStampRange(rangeKey, customStart, customEnd);
     const filteredBills = getFilteredBills(start, end);
     const { idMap, nameMap } = inventoryLookups;
@@ -624,7 +627,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const sortedData = Object.values(dataMap).sort((a, b) => a.timestamp - b.timestamp);
     return sortedData;
-  };
+  }, [bills, inventoryLookups, movements, getStampRange, getFilteredBills]);
 
 
   const getFilteredBillsForRange = (rangeKey: string, customStart?: string, customEnd?: string) => {

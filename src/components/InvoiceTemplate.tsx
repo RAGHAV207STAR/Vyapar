@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Download,
   Printer,
@@ -174,15 +176,93 @@ function convertOklchToRgb(oklchStr: string): string {
   }
 }
 
-// Safely parses and replaces all oklch values within complex properties (e.g. background-image linear-gradient, box-shadow)
-function replaceOklchColors(str: string): string {
-  if (!str || typeof str !== "string" || !str.includes("oklch")) {
+// Safely parses and replaces all unsupported colors within complex properties (e.g. background-image linear-gradient, box-shadow)
+function replaceUnsupportedColors(str: string): string {
+  if (!str || typeof str !== "string") {
     return str;
   }
-  return str.replace(/oklch\([^)]+\)/g, (match) => {
-    return convertOklchToRgb(match);
+  let newStr = str;
+  if (newStr.includes("oklch")) {
+    newStr = newStr.replace(/oklch\([^)]+\)/g, (match) => {
+      return convertOklchToRgb(match);
+    });
+  }
+  if (newStr.includes("oklab")) {
+    newStr = newStr.replace(/oklab\([^)]+\)/g, (match) => {
+      const lMatch = match.match(/oklab\(\s*([+-]?\d*(?:\.\d+)?%?)/);
+      if (lMatch) {
+         let L = parseFloat(lMatch[1]);
+         if (lMatch[1].endsWith("%")) L = L / 100;
+         const v = Math.round(L * 255);
+         return `rgb(${v}, ${v}, ${v})`;
+      }
+      return "rgb(200, 200, 200)";
+    });
+  }
+  // html2canvas doesn't support color-mix
+  if (newStr.includes("color-mix")) {
+     // We do a simple crude fallback to grey or whatever because regex for nested parens is hard.
+     // But we can just replace the whole color-mix(...) if we assume no deeper nesting than color-mix(in oklab, rgb(0,0,0) 50%, rgb(255,255,255))
+     // Actually, replacing color-mix entirely might be too broad if it contains multiple items. Let's just catch color-mix(in oklab...
+     newStr = newStr.replace(/color-mix\([^)]+\)/g, "rgb(128, 128, 128)");
+  }
+  // html2canvas doesn't support color(...)
+  if (newStr.includes("color(")) {
+    newStr = newStr.replace(/color\([^)]+\)/g, "rgb(128, 128, 128)");
+  }
+  return newStr;
+}
+
+const colorProps = new Set([
+  'color', 'backgroundColor', 'background-color',
+  'borderTopColor', 'border-top-color',
+  'borderRightColor', 'border-right-color',
+  'borderBottomColor', 'border-bottom-color',
+  'borderLeftColor', 'border-left-color',
+  'borderColor', 'border-color',
+  'outlineColor', 'outline-color',
+  'boxShadow', 'box-shadow',
+  'textShadow', 'text-shadow',
+  'backgroundImage', 'background-image',
+  'fill', 'stroke'
+]);
+
+function createFastComputedStyleProxy(styles: CSSStyleDeclaration) {
+  return new Proxy(styles, {
+    get(target, prop) {
+      if (prop === "getPropertyValue") {
+        return (propertyName: string) => {
+          const val = target.getPropertyValue(propertyName);
+          if (typeof val === "string" && colorProps.has(propertyName) && (val.includes("oklch") || val.includes("oklab") || val.includes("color-mix") || val.includes("color("))) {
+            return replaceUnsupportedColors(val);
+          }
+          return val;
+        };
+      }
+      if (typeof prop === "string" && colorProps.has(prop)) {
+        const val = target[prop as any];
+        if (typeof val === "string" && (val.includes("oklch") || val.includes("oklab") || val.includes("color-mix") || val.includes("color("))) {
+          return replaceUnsupportedColors(val);
+        }
+        return val;
+      }
+      const value = target[prop as any];
+      if (typeof value === "function") {
+        return (value as any).bind(target);
+      }
+      return value;
+    },
   });
 }
+
+const getAppHostname = (): string => {
+  return "smartvyapar.vercel.app";
+};
+
+const getAppUrl = (): string => {
+  return "https://smartvyapar.vercel.app/";
+};
+
 
 // Dynamically scales down font sizes for long text strings to keep sections responsive
 const getDynamicFontSize = (text: string, baseSize: number, maxLength: number, minSize: number = 7): string => {
@@ -203,16 +283,19 @@ export default function InvoiceTemplate({
   const { profile, showToast } = useBilling();
   const invoiceRef = useRef<HTMLDivElement>(null);
 
-  const getInvoiceQRSource = () => {
+  const getInvoiceQRData = (): { type: 'upi' | 'image' | 'none', data: string } => {
     if (profile?.upiId) {
       const cleanUpi = profile.upiId.trim();
       const cleanShopName = profile.shopName ? profile.shopName.trim() : 'Smart Vyapar';
       const payableAmount = (bill.balanceAmount !== undefined && bill.balanceAmount > 0) ? bill.balanceAmount : bill.totalAmount;
       const cleanAmount = payableAmount ? Number(payableAmount).toFixed(2) : '0.00';
       const upiUri = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(cleanShopName)}&am=${encodeURIComponent(cleanAmount)}&cu=INR`;
-      return `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(upiUri)}`;
+      return { type: 'upi', data: upiUri };
     }
-    return profile?.qrCode || "";
+    if (profile?.qrCode) {
+      return { type: 'image', data: profile.qrCode };
+    }
+    return { type: 'none', data: '' };
   };
   const zoomContainerRef = useRef<HTMLDivElement>(null);
   const exportInvoiceRef = useRef<HTMLDivElement>(null);
@@ -278,7 +361,7 @@ export default function InvoiceTemplate({
     }
   }, [bill.customerDetails, billFormat, setBillFormat, showToast]);
 
-  const generatePDFBlob = async (exportRef: React.RefObject<HTMLDivElement | null>, bwMode = false): Promise<Blob | null> => {
+  const generateCanvases = async (exportRef: React.RefObject<HTMLDivElement | null>, bwMode = false): Promise<HTMLCanvasElement[] | null> => {
     if (!exportRef.current) return null;
     
     setIsBW(bwMode);
@@ -286,33 +369,13 @@ export default function InvoiceTemplate({
     const originalGetComputedStyle = window.getComputedStyle;
     window.getComputedStyle = (elt, pseudoElt) => {
       const styles = originalGetComputedStyle(elt, pseudoElt);
-      return new Proxy(styles, {
-        get(target, prop) {
-          if (prop === "getPropertyValue") {
-            return (propertyName: string) => {
-              const val = target.getPropertyValue(propertyName);
-              if (typeof val === "string" && val.includes("oklch")) {
-                return replaceOklchColors(val);
-              }
-              return val;
-            };
-          }
-          const value = target[prop as any];
-          if (typeof value === "function") {
-            return (value as any).bind(target);
-          }
-          if (typeof value === "string" && value.includes("oklch")) {
-            return replaceOklchColors(value);
-          }
-          return value;
-        },
-      }) as any;
+      return createFastComputedStyleProxy(styles);
     };
 
     try {
       // Wait for all custom fonts to be fully loaded with a timeout to prevent hanging
       if (typeof document !== "undefined" && document.fonts) {
-        await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 150))]);
+        await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
       }
       
       const parentElement = exportRef.current;
@@ -323,17 +386,42 @@ export default function InvoiceTemplate({
       const canvases = await Promise.all(
         pageElements.map((pageEl) =>
           html2canvas(pageEl as HTMLElement, {
-            scale: 1.5, // Faster generation
+            scale: 3, // Higher scale for sharper text
             useCORS: true,
             backgroundColor: "#ffffff",
             logging: false,
             allowTaint: false,
             imageTimeout: 1500,
+            scrollX: 0,
+            scrollY: 0,
+            onclone: (clonedDoc) => {
+              if (clonedDoc.defaultView) {
+                const originalGetComputedStyleClone = clonedDoc.defaultView.getComputedStyle;
+                clonedDoc.defaultView.getComputedStyle = (elt, pseudoElt) => {
+                  const styles = originalGetComputedStyleClone(elt, pseudoElt);
+                  return createFastComputedStyleProxy(styles);
+                };
+              }
+            }
           })
         )
       );
 
-      const isThermal = billFormat === '80mm' || billFormat === '58mm';
+      return canvases;
+    } catch (error) {
+      console.error("Canvas compilation failed:", error);
+      return null;
+    } finally {
+      window.getComputedStyle = originalGetComputedStyle;
+      setIsBW(false);
+    }
+  };
+
+  const generatePDFBlob = async (exportRef: React.RefObject<HTMLDivElement | null>, bwMode = false): Promise<Blob | null> => {
+    try {
+      const canvases = await generateCanvases(exportRef, bwMode);
+      if (!canvases || canvases.length === 0) return null;
+
       let pdf: jsPDF;
       let imgWidth: number;
       let imgHeightFn: (canvas: HTMLCanvasElement) => number;
@@ -341,11 +429,11 @@ export default function InvoiceTemplate({
       if (billFormat === 'A4') {
         pdf = new jsPDF("p", "mm", "a4");
         imgWidth = 210;
-        imgHeightFn = () => 297;
+        imgHeightFn = (canvas) => (canvas.height * imgWidth) / canvas.width;
       } else if (billFormat === 'A5') {
         pdf = new jsPDF("p", "mm", "a5");
         imgWidth = 148;
-        imgHeightFn = () => 210;
+        imgHeightFn = (canvas) => (canvas.height * imgWidth) / canvas.width;
       } else {
         const canvas = canvases[0];
         const pixelWidth = canvas.width;
@@ -358,21 +446,18 @@ export default function InvoiceTemplate({
 
       for (let i = 0; i < canvases.length; i++) {
         const canvas = canvases[i];
-        // JPEG compression (0.95 quality) is extremely fast natively and lighter than PNG
-        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        // PNG is lossless and produces extremely sharp text lines without JPEG compression noise
+        const imgData = canvas.toDataURL("image/png");
         if (i > 0) {
           pdf.addPage();
         }
-        pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeightFn(canvas), undefined, "FAST");
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeightFn(canvas), undefined, "FAST");
       }
 
       return pdf.output("blob");
     } catch (error) {
       console.error("PDF compiling failed:", error);
       return null;
-    } finally {
-      window.getComputedStyle = originalGetComputedStyle;
-      setIsBW(false);
     }
   };
 
@@ -408,90 +493,17 @@ export default function InvoiceTemplate({
       showToast("Cannot print A4 bill without customer details. Standard Thermal format is permitted.", "error");
       return;
     }
-    const printContent = exportInvoiceRef.current?.innerHTML;
-    if (!printContent) return;
+    
+    if (!exportInvoiceRef.current) {
+      showToast("Invoice markup not ready.", "error");
+      return;
+    }
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.bottom = "0";
-    iframe.style.right = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    document.body.appendChild(iframe);
-
-    // Speed optimization & offline readiness: Replication of document stylesheets directly
-    const stylesheets = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(el => el.outerHTML)
-      .join('\n');
-
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(`
-        <html>
-          <head>
-            <title>Invoice - ${bill.invoiceNumber}</title>
-            ${stylesheets}
-            <style>
-              html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-                background-color: #ffffff;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              
-              @page {
-                size: ${billFormat === 'A4' ? 'A4' : (billFormat === 'A5' ? 'A5' : (billFormat === '80mm' ? '80mm auto' : '58mm auto'))};
-                margin: 0 !important;
-              }
-
-              .invoice-card {
-                width: 100%;
-                background: white;
-              }
-
-              @media print {
-                html, body {
-                  width: ${billFormat === 'A4' ? '210mm' : (billFormat === 'A5' ? '148mm' : (billFormat === '80mm' ? '80mm' : '58mm'))};
-                  margin: 0 !important;
-                  padding: 0 !important;
-                }
-                .print-page-ct {
-                  width: ${billFormat === 'A4' ? '210mm' : (billFormat === 'A5' ? '148mm' : '100%')} !important;
-                  height: ${billFormat === 'A4' ? '297mm' : (billFormat === 'A5' ? '210mm' : 'auto')} !important;
-                  page-break-after: ${(billFormat === 'A4' || billFormat === 'A5') ? 'always' : 'avoid'} !important;
-                  break-after: ${(billFormat === 'A4' || billFormat === 'A5') ? 'page' : 'avoid'} !important;
-                  page-break-inside: avoid !important;
-                  break-inside: avoid !important;
-                  box-shadow: none !important;
-                  border: none !important;
-                  margin: 0 !important;
-                  box-sizing: border-box !important;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="invoice-card ${isBW ? "grayscale" : ""}">${printContent}</div>
-            <script>
-              var hasPrinted = false;
-              function runPrint() {
-                if (hasPrinted) return;
-                hasPrinted = true;
-                setTimeout(function(){ 
-                   window.print();
-                   setTimeout(function(){ window.frameElement.remove(); }, 1500);
-                }, 50);
-              }
-              window.onload = runPrint;
-              setTimeout(runPrint, 350); // Fast fail-safe fallback trigger
-            </script>
-          </body>
-        </html>
-      `);
-      doc.close();
+    try {
+      window.print();
+    } catch (err) {
+      console.error("Print spooling error:", err);
+      showToast("Print failed to initiate.", "error");
     }
   };
 
@@ -519,26 +531,7 @@ Thank you for your business!`;
         const url = URL.createObjectURL(blob);
         setSharePdfBlobUrl(url);
         
-        const file = new File([blob], `Invoice_${bill.invoiceNumber}${isBW ? "_BW" : ""}.pdf`, {
-          type: "application/pdf",
-        });
-        
-        // Native Share Web API (primarily supported on mobile devices when in top-level context)
-        if (navigator.share && navigator.canShare) {
-          const shareData = {
-            title: `Invoice ${bill.invoiceNumber}`,
-            text: shareText,
-            files: [file],
-          };
-
-          if (navigator.canShare(shareData)) {
-            await navigator.share(shareData);
-            showToast("Invoice shared successfully!", "success");
-            return;
-          }
-        }
-        
-        // Fallback: trigger standard download of identical PDF automatically so they always have the PDF produced, then open modal
+        // Instant standard download of PDF format so user has it immediately
         const a = document.createElement("a");
         a.href = url;
         a.download = `Invoice_${bill.invoiceNumber}${isBW ? "_BW" : ""}.pdf`;
@@ -546,14 +539,24 @@ Thank you for your business!`;
         a.click();
         document.body.removeChild(a);
         
-        showToast("PDF generated! Downloading as fallback for sharing.", "info");
-        setIsShareModalOpen(true);
+        showToast("PDF downloaded! Opening WhatsApp...", "success");
+
+        // Clean and prepare the customer phone number
+        const cleanPhone = bill.customerDetails?.phone ? bill.customerDetails.phone.replace(/\D/g, '') : '';
+        const phoneWithCountry = cleanPhone ? (cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone) : '';
+
+        // Open WhatsApp instantly with the formatted bill text
+        const whatsappUrl = phoneWithCountry 
+          ? `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(shareText)}`
+          : `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
       } else {
         showToast("Failed to compile or generate PDF.", "error");
       }
     } catch (err: any) {
-      console.warn("Share flow issue:", err);
-      setIsShareModalOpen(true);
+      console.warn("WhatsApp share flow issue:", err);
+      showToast("Could not initiate WhatsApp sharing.", "error");
     } finally {
       setIsSharing(false);
     }
@@ -798,7 +801,7 @@ Thank you for your business!`;
             <div className="font-bold text-slate-550 uppercase text-[8px] tracking-wider mb-0.5">Billed To:</div>
             <div className="font-bold text-black text-[10.5px]">Name: {bill.customerDetails.name}</div>
             {bill.customerDetails.phone && <div>Phone: <span className="font-semibold">+91 {bill.customerDetails.phone}</span></div>}
-            {bill.customerDetails.address && <div className="text-slate-600 line-clamp-2">Address: {bill.customerDetails.address}</div>}
+            {bill.customerDetails.address && <div className="text-slate-600 break-words min-w-0">Address: {bill.customerDetails.address}</div>}
           </div>
         )}
 
@@ -811,7 +814,7 @@ Thank you for your business!`;
             {/* 80mm Custom high-visibility solid black table header */}
             <div className="bg-black text-white px-2 py-1 font-bold text-[9px] flex justify-between rounded-xs font-sans tracking-wide uppercase">
               <span className="w-[10%] text-left">S.No</span>
-              <span className="w-[45%] text-left truncate">Item Name</span>
+              <span className="w-[45%] text-left break-words min-w-0">Item Name</span>
               <span className="w-[10%] text-center">Qty</span>
               <span className="w-[15%] text-right">Rate</span>
               <span className="w-[20%] text-right">Amount</span>
@@ -820,7 +823,7 @@ Thank you for your business!`;
               {bill.products.map((p, index) => (
                 <div key={index} className="flex justify-between items-center text-[10px] text-black font-sans leading-tight border-b border-dotted border-slate-200 pb-1.5">
                   <span className="w-[10%] text-left text-slate-500 font-bold">{index + 1}</span>
-                  <span className="w-[45%] text-left font-extrabold text-slate-800 truncate pr-1">
+                  <span className="w-[45%] text-left font-extrabold text-slate-800 break-words min-w-0 pr-1">
                     {p.name} {p.hsn ? `(${p.hsn})` : ''}
                   </span>
                   <span className="w-[10%] text-center font-bold">{p.quantity}</span>
@@ -842,7 +845,7 @@ Thank you for your business!`;
               {bill.products.map((p, index) => (
                 <div key={index} className="flex flex-col text-[10px] text-black font-sans leading-tight border-b border-dotted border-slate-200 pb-1.5">
                   <div className="flex justify-between font-extrabold text-slate-800">
-                    <span className="truncate pr-1 flex-1">{index + 1}. {p.name}</span>
+                    <span className="break-words min-w-0 pr-1 flex-1">{index + 1}. {p.name}</span>
                     <span className="w-8 text-center shrink-0 font-bold">{p.quantity}</span>
                     <span className="w-16 text-right shrink-0 font-black">{(p.total || 0).toFixed(2)}</span>
                   </div>
@@ -938,20 +941,29 @@ Thank you for your business!`;
               <div className="text-[8.5px] font-black uppercase text-slate-600 tracking-widest mt-1 mb-0.5">Scan to Pay</div>
               <div className="text-[13px] font-black tracking-tight text-slate-900 mb-1.5">₹{Math.round(bill.totalAmount).toFixed(2)}</div>
               
-              <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                {getInvoiceQRSource() ? (
-                  <img
-                    src={getInvoiceQRSource()}
-                    alt="QR Code"
-                    className="w-[64px] h-[64px] object-contain"
-                    referrerPolicy="no-referrer"
-                    style={{ imageRendering: '-webkit-optimize-contrast' }}
-                  />
-                ) : (
-                  <div className="w-[64px] h-[64px] border border-dashed border-gray-400 rounded flex items-center justify-center text-[7px] text-gray-500 text-center bg-slate-100">
-                    No QR
-                  </div>
-                )}
+              <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-sm flex justify-center items-center">
+                {(() => {
+                  const qr = getInvoiceQRData();
+                  if (qr.type === 'upi') {
+                    return <QRCodeSVG value={qr.data} size={64} level="M" />;
+                  } else if (qr.type === 'image') {
+                    return (
+                      <img
+                        src={qr.data}
+                        alt="QR Code"
+                        className="w-[64px] h-[64px] object-contain"
+                        referrerPolicy="no-referrer"
+                        style={{ imageRendering: '-webkit-optimize-contrast' }}
+                      />
+                    );
+                  } else {
+                    return (
+                      <div className="w-[64px] h-[64px] border border-dashed border-gray-400 rounded flex items-center justify-center text-[7px] text-gray-500 text-center bg-slate-100">
+                        No QR
+                      </div>
+                    );
+                  }
+                })()}
               </div>
 
               {profile?.upiId && profile?.showUpiIdOnBill && (
@@ -1151,7 +1163,7 @@ Thank you for your business!`;
                       </span>
                       <span className="shrink-0 mr-1">:</span>
                       <span 
-                        className={`font-black truncate flex-1 font-sans ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}
+                        className={`font-black break-words min-w-0 flex-1 font-sans ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}
                         style={{ fontSize: getDynamicFontSize(bill.customerDetails.name || "", billFormat === 'A5' ? 9.5 : 12, 18, 7.5) }}
                       >
                         {bill.customerDetails.name || "-"}
@@ -1162,12 +1174,12 @@ Thank you for your business!`;
                         Mobile Number
                       </span>
                       <span className="shrink-0 mr-1">:</span>
-                      <span className="truncate flex-1 font-bold">{bill.customerDetails.phone || "-"}</span>
+                      <span className="break-words min-w-0 flex-1 font-bold">{bill.customerDetails.phone || "-"}</span>
                     </div>
                     <div className="flex bg-white flex-1 leading-tight">
                       <span className={`${billFormat === 'A5' ? 'w-18' : 'w-24'} shrink-0 font-bold text-slate-400`}>Address</span>
                       <span className="shrink-0 mr-1">:</span>
-                      <span className="whitespace-pre-line leading-tight flex-1 font-semibold text-slate-600">
+                      <span className="whitespace-pre-line break-words min-w-0 leading-tight flex-1 font-semibold text-slate-600">
                         {bill.customerDetails.address || "-"}
                       </span>
                     </div>
@@ -1190,14 +1202,14 @@ Thank you for your business!`;
                       <div className="flex bg-white">
                         <span className={`${billFormat === 'A5' ? 'w-18' : 'w-24'} shrink-0 font-bold text-slate-400`}>Transport</span>
                         <span className="shrink-0 mr-1">:</span>
-                        <span className="truncate flex-1 font-semibold text-slate-600">{bill.otherDetails?.transport || "-"}</span>
+                        <span className="break-words min-w-0 flex-1 font-semibold text-slate-600">{bill.otherDetails?.transport || "-"}</span>
                       </div>
                       <div className="flex bg-white">
                         <span className={`${billFormat === 'A5' ? 'w-18' : 'w-24'} shrink-0 font-bold text-slate-400`}>
                           Vehicle No.
                         </span>
                         <span className="shrink-0 mr-1">:</span>
-                        <span className={`uppercase truncate flex-1 font-extrabold ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}>
+                        <span className={`uppercase break-words min-w-0 flex-1 font-extrabold ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}>
                           {bill.otherDetails?.vehicleNumber || "-"}
                         </span>
                       </div>
@@ -1206,14 +1218,14 @@ Thank you for your business!`;
                           Place of Supply
                         </span>
                         <span className="shrink-0 mr-1">:</span>
-                        <span className="truncate flex-1 font-semibold text-slate-600">{bill.otherDetails?.placeOfSupply || "-"}</span>
+                        <span className="break-words min-w-0 flex-1 font-semibold text-slate-600">{bill.otherDetails?.placeOfSupply || "-"}</span>
                       </div>
                       <div className="flex bg-white">
                         <span className={`${billFormat === 'A5' ? 'w-18' : 'w-24'} shrink-0 font-bold text-slate-400`}>
                           GSTIN (Customer)
                         </span>
                         <span className="shrink-0 mr-1">:</span>
-                        <span className={`uppercase font-sans font-black truncate flex-1 ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}>
+                        <span className={`uppercase font-sans font-black break-words min-w-0 flex-1 ${isBW ? 'text-black' : 'text-[#0B2C56]'}`}>
                           {bill.customerDetails.gstNumber || "-"}
                         </span>
                       </div>
@@ -1233,24 +1245,33 @@ Thank you for your business!`;
                        <span className={`font-extrabold tracking-tight whitespace-nowrap mt-0.5 ${billFormat === 'A5' ? 'text-[10px]' : 'text-[13px]'} ${isBW ? 'text-black' : 'text-slate-800'}`}>₹{Math.round(bill.totalAmount).toFixed(2)}</span>
                     </div>
 
-                    {getInvoiceQRSource() ? (
-                      <div className={`p-1 bg-white rounded-xl shadow-sm border ${isBW ? 'border-black/20' : 'border-indigo-100/60'} mb-1`}>
-                        <img
-                          src={getInvoiceQRSource()}
-                          alt="QR Code"
-                          className={`${billFormat === 'A5' ? 'w-[42px] h-[42px]' : 'w-14 h-14'} object-contain`}
-                          referrerPolicy="no-referrer"
-                          style={{ imageRendering: '-webkit-optimize-contrast' }}
-                        />
-                      </div>
-                    ) : (
-                      <div className={`${billFormat === 'A5' ? 'w-[42px] h-[42px]' : 'w-14 h-14'} border border-dashed border-gray-400 rounded-xl flex items-center justify-center text-[8px] text-gray-500 text-center bg-slate-50 mb-1`}>
-                        No QR
-                      </div>
-                    )}
+                    <div className={`p-1 bg-white rounded-xl shadow-sm border ${isBW ? 'border-black/20' : 'border-indigo-100/60'} mb-1 flex justify-center items-center`}>
+                      {(() => {
+                        const qr = getInvoiceQRData();
+                        if (qr.type === 'upi') {
+                          return <QRCodeSVG value={qr.data} size={billFormat === 'A5' ? 42 : 56} level="M" />;
+                        } else if (qr.type === 'image') {
+                          return (
+                            <img
+                              src={qr.data}
+                              alt="QR Code"
+                              className={`${billFormat === 'A5' ? 'w-[42px] h-[42px]' : 'w-14 h-14'} object-contain`}
+                              referrerPolicy="no-referrer"
+                              style={{ imageRendering: '-webkit-optimize-contrast' }}
+                            />
+                          );
+                        } else {
+                          return (
+                            <div className={`${billFormat === 'A5' ? 'w-[42px] h-[42px]' : 'w-14 h-14'} border border-dashed border-gray-400 rounded-xl flex items-center justify-center text-[8px] text-gray-500 text-center bg-slate-50 mb-1`}>
+                              No QR
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
                     {profile?.upiId && profile?.showUpiIdOnBill && (
                       <div className="text-center w-full min-w-0 bg-slate-50 py-0.5 rounded-md px-1 mt-auto">
-                        <div className={`${billFormat === 'A5' ? 'text-[6.5px]' : 'text-[8px]'} font-bold truncate max-w-full text-slate-500 font-mono text-center tracking-tighter`}>
+                        <div className={`${billFormat === 'A5' ? 'text-[6.5px]' : 'text-[8px]'} font-bold break-words min-w-0 max-w-full text-slate-500 font-mono text-center tracking-tighter`}>
                           UPI: {profile.upiId}
                         </div>
                       </div>
@@ -1504,7 +1525,7 @@ Thank you for your business!`;
                 <div className={`p-2.5 border-t ${!isBW ? 'border-orange-100 bg-[#FFFDFB]' : 'border-slate-350'} leading-tight`}>
                   <div className="font-bold text-[8.5px] uppercase tracking-wider text-slate-400">Amount in Words:</div>
                   <div 
-                    className="italic font-bold text-slate-850 break-words mt-0.5 line-clamp-2"
+                    className="italic font-bold text-slate-850 break-words mt-0.5"
                     style={{ fontSize: getDynamicFontSize(numberToWords(bill.totalAmount) || "", 9.5, 30, 7.5) }}
                   >
                     {numberToWords(bill.totalAmount)}
@@ -1643,7 +1664,7 @@ Thank you for your business!`;
             <div className="flex-1 text-center font-sans">
               <span className="normal-case text-slate-200">Generated by </span>
               <span className="uppercase text-orange-400 tracking-wider font-extrabold">Smart Vyapar</span>
-              <span className="text-slate-300 font-extrabold"> | www.smartvyapar.com</span>
+              <span className="text-slate-300 font-extrabold"> | {getAppHostname()}</span>
             </div>
 
             {/* Right orange slanted ribbon */}
@@ -1654,12 +1675,12 @@ Thank you for your business!`;
 
           <div className="bg-slate-50 text-center py-1 border border-slate-200/60 rounded-b-xl mt-1 select-all">
             <a 
-              href="https://smartvyapar.vercel.app/" 
+              href={getAppUrl()} 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-blue-600 font-extrabold hover:underline text-[9px] leading-tight block"
             >
-              https://smartvyapar.vercel.app/
+              {getAppUrl()}
             </a>
           </div>
         </div>
@@ -1787,22 +1808,28 @@ Thank you for your business!`;
               </span>
             </div>
 
-            {/* Share Button */}
+            {/* WhatsApp Share Button */}
             <div className="relative group">
               <button
                 type="button"
                 onClick={handleShare}
                 disabled={isSharing || isDownloading}
-                className="p-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 shadow-sm hover:bg-slate-50 transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 disabled:bg-slate-100"
+                className="p-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
               >
                 {isSharing ? (
-                  <RefreshCw className="w-4.5 h-4.5 text-slate-400 animate-spin" />
+                  <RefreshCw className="w-4.5 h-4.5 text-white animate-spin" />
                 ) : (
-                  <Share2 className="w-4.5 h-4.5 text-slate-500" />
+                  <svg 
+                    className="w-4.5 h-4.5 text-white" 
+                    viewBox="0 0 16 16" 
+                    fill="currentColor"
+                  >
+                    <path d="M13.601 2.326A7.854 7.854 0 0 0 8 0a7.854 7.854 0 0 0-7.852 7.854c0 1.515.395 2.99 1.147 4.3l-1.217 4.45 4.545-1.192a7.86 7.86 0 0 0 3.758.958h.001c4.337 0 7.862-3.525 7.862-7.856a7.848 7.848 0 0 0-2.311-5.539zM8 14.394h-.001c-1.312-.001-2.602-.352-3.733-1.018l-.268-.159-2.774.727.741-2.71-.174-.277a6.52 6.52 0 0 1-1.002-3.413c0-3.6 2.932-6.531 6.535-6.531 1.744 0 3.385.68 4.618 1.913a6.516 6.516 0 0 1 1.914 4.62c-.002 3.601-2.935 6.532-6.536 6.532zM11.5 9.4c-.19-.094-1.129-.556-1.304-.619-.175-.064-.303-.095-.43.095-.127.19-.492.619-.603.746-.111.127-.222.143-.413.048-.19-.094-.8-.294-1.524-.94-.564-.503-.944-1.126-1.055-1.317-.111-.19-.012-.293.083-.387.086-.085.19-.222.285-.333.095-.11.127-.186.19-.31.064-.128.032-.24-.015-.334-.048-.095-.43-1.034-.59-1.42-.154-.374-.31-.323-.43-.323h-.368c-.19 0-.498.07-.76.355-.26.285-1 .978-1.001 2.387-.001 1.408 1.026 2.77 1.168 2.96 1.42 1.888 2.5 2.5 3.9 2.5h.1c.1 0 .3-.1.4-.2.1-.1.3-.3.4-.4.1-.1.2-.2.2-.3s.1-.2 0-.3z"/>
+                  </svg>
                 )}
               </button>
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md z-10">
-                Share Invoice
+                Share on WhatsApp
               </span>
             </div>
 
@@ -1897,32 +1924,43 @@ Thank you for your business!`;
       </div>
 
       {/* 2. Hidden off-screen compilation sheet for PDF export and Print (Rendered inside visible layout bounds for pixel-perfect font rasterization) */}
-      <div 
-        style={{
-          position: "absolute",
-          top: "0",
-          left: "0",
-          width: (billFormat === 'A4' || billFormat === 'A5') ? (billFormat === 'A5' ? "561px" : "794px") : (billFormat === '80mm' ? "300px" : "220px"),
-          height: "1px",
-          overflow: "hidden",
-          pointerEvents: "none",
-          opacity: 0.001,
-          zIndex: -9999
-        }}
-      >
-        <div
-          ref={exportInvoiceRef}
-          className="flex flex-col space-y-0"
+      {typeof window !== 'undefined' && createPortal(
+        <div 
+          id="printable-invoice"
+          className="absolute top-0 pointer-events-none -z-[9999] print:h-auto print:opacity-100 print:overflow-visible print:z-50 print:left-0"
           style={{
+            left: "-9999px",
             width: (billFormat === 'A4' || billFormat === 'A5') ? (billFormat === 'A5' ? "561px" : "794px") : (billFormat === '80mm' ? "300px" : "220px"),
           }}
         >
-          {billFormat === 'A4' || billFormat === 'A5'
-            ? pages.map((page, pIdx) => renderInvoicePage(page, pIdx, true))
-            : renderThermalInvoice(true, billFormat === '80mm' ? 300 : 220)
+          <div
+            ref={exportInvoiceRef}
+            className="flex flex-col space-y-0"
+            style={{
+              width: (billFormat === 'A4' || billFormat === 'A5') ? (billFormat === 'A5' ? "561px" : "794px") : (billFormat === '80mm' ? "300px" : "220px"),
+            }}
+          >
+            {billFormat === 'A4' || billFormat === 'A5'
+              ? pages.map((page, pIdx) => renderInvoicePage(page, pIdx, true))
+              : renderThermalInvoice(true, billFormat === '80mm' ? 300 : 220)
+            }
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Dynamic Print Styles for correct page sizes */}
+      <style>{`
+        @media print {
+          @page {
+            size: ${billFormat === 'A4' ? 'A4' : (billFormat === 'A5' ? 'A5' : (billFormat === '80mm' ? '80mm auto' : '58mm auto'))};
+            margin: 0 !important;
           }
-        </div>
-      </div>
+          html, body {
+            width: ${billFormat === 'A4' ? '210mm' : (billFormat === 'A5' ? '148mm' : (billFormat === '80mm' ? '80mm' : '58mm'))};
+          }
+        }
+      `}</style>
 
     {/* SHARE POPUP MODAL */}
     {isShareModalOpen && (
@@ -1968,8 +2006,14 @@ Thank you for your business!`;
               rel="noopener noreferrer"
               className="flex items-center gap-3.5 p-3.5 bg-emerald-50 hover:bg-emerald-100/90 active:scale-98 text-emerald-800 rounded-2xl transition border border-emerald-100 font-bold text-sm w-full cursor-pointer"
             >
-              <div className="bg-emerald-500 text-white rounded-xl py-1 px-2.5 text-xs font-black shrink-0">
-                WA
+              <div className="bg-emerald-500 text-white rounded-xl p-2 shrink-0 flex items-center justify-center">
+                <svg 
+                  className="w-4 h-4 text-white" 
+                  viewBox="0 0 16 16" 
+                  fill="currentColor"
+                >
+                  <path d="M13.601 2.326A7.854 7.854 0 0 0 8 0a7.854 7.854 0 0 0-7.852 7.854c0 1.515.395 2.99 1.147 4.3l-1.217 4.45 4.545-1.192a7.86 7.86 0 0 0 3.758.958h.001c4.337 0 7.862-3.525 7.862-7.856a7.848 7.848 0 0 0-2.311-5.539zM8 14.394h-.001c-1.312-.001-2.602-.352-3.733-1.018l-.268-.159-2.774.727.741-2.71-.174-.277a6.52 6.52 0 0 1-1.002-3.413c0-3.6 2.932-6.531 6.535-6.531 1.744 0 3.385.68 4.618 1.913a6.516 6.516 0 0 1 1.914 4.62c-.002 3.601-2.935 6.532-6.536 6.532zM11.5 9.4c-.19-.094-1.129-.556-1.304-.619-.175-.064-.303-.095-.43.095-.127.19-.492.619-.603.746-.111.127-.222.143-.413.048-.19-.094-.8-.294-1.524-.94-.564-.503-.944-1.126-1.055-1.317-.111-.19-.012-.293.083-.387.086-.085.19-.222.285-.333.095-.11.127-.186.19-.31.064-.128.032-.24-.015-.334-.048-.095-.43-1.034-.59-1.42-.154-.374-.31-.323-.43-.323h-.368c-.19 0-.498.07-.76.355-.26.285-1 .978-1.001 2.387-.001 1.408 1.026 2.77 1.168 2.96 1.42 1.888 2.5 2.5 3.9 2.5h.1c.1 0 .3-.1.4-.2.1-.1.3-.3.4-.4.1-.1.2-.2.2-.3s.1-.2 0-.3z"/>
+                </svg>
               </div>
               <div className="text-left flex-1">
                 <p className="font-extrabold text-emerald-950 leading-none">Share to WhatsApp</p>

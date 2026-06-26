@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Plus,
@@ -223,10 +223,40 @@ function AppContent() {
     "A4",
   );
 
+  const previewBillRef = useRef<Bill | null>(null);
+  useEffect(() => {
+    previewBillRef.current = previewBill;
+  }, [previewBill]);
+
+  // If page mounts with #preview hash, clean it up to avoid stale history states
+  useEffect(() => {
+    if (window.location.hash === "#preview") {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  const handleSetPreviewBill = (bill: Bill | null) => {
+    if (bill) {
+      if (window.location.hash !== "#preview") {
+        window.history.pushState({ isPreview: true }, "", window.location.pathname + "#preview");
+      }
+      setPreviewBill(bill);
+    } else {
+      if (window.location.hash === "#preview") {
+        window.history.back();
+      } else {
+        setPreviewBill(null);
+      }
+    }
+  };
+
   // Sync state with browser popstate buttons
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      if (previewBillRef.current) {
+        setPreviewBill(null);
+      }
     };
     const handleNavigateEvent = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
@@ -308,6 +338,9 @@ function AppContent() {
   // Custom unified tab/route mapping switcher
   const handleActiveTabChange = (tab: string) => {
     setActiveTab(tab);
+    if (window.location.hash === "#preview") {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     setPreviewBill(null);
     setMobileMenuOpen(false);
     if (tab !== "Create Bill") {
@@ -908,11 +941,14 @@ function AppContent() {
       return (
         <InvoiceTemplate
           bill={previewBill}
-          onBack={() => setPreviewBill(null)}
+          onBack={() => handleSetPreviewBill(null)}
           billFormat={billFormat}
           setBillFormat={setBillFormat}
           onEdit={() => {
             setEditingBill(previewBill);
+            if (window.location.hash === "#preview") {
+              window.history.replaceState(null, "", window.location.pathname);
+            }
             setPreviewBill(null);
             handleActiveTabChange("Create Bill");
           }}
@@ -925,14 +961,14 @@ function AppContent() {
         return (
           <DashboardHome
             onNavigate={(tab) => handleActiveTabChange(tab)}
-            onViewBill={(bill) => setPreviewBill(bill)}
+            onViewBill={(bill) => handleSetPreviewBill(bill)}
           />
         );
       case "Create Bill":
         return (
           <BillingSystem
             onBillGenerated={(bill) => {
-              setPreviewBill(bill);
+              handleSetPreviewBill(bill);
               setEditingBill(null);
               setPrefilledCustomer(null);
             }}
@@ -960,7 +996,7 @@ function AppContent() {
       case "Bill History":
         return (
           <BillHistory
-            onViewBill={(bill) => setPreviewBill(bill)}
+            onViewBill={(bill) => handleSetPreviewBill(bill)}
             onEditBill={(bill) => {
               setEditingBill(bill);
               handleActiveTabChange("Create Bill");
@@ -970,7 +1006,7 @@ function AppContent() {
       case "Bill Payment Status":
         return (
           <BillPaymentStatus
-            onViewBill={(bill) => setPreviewBill(bill)}
+            onViewBill={(bill) => handleSetPreviewBill(bill)}
             onNavigate={(tab) => handleActiveTabChange(tab)}
           />
         );

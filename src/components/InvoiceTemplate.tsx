@@ -230,12 +230,6 @@ export default function InvoiceTemplate({
     
     setIsBW(bwMode);
 
-    const originalGetComputedStyle = window.getComputedStyle;
-    window.getComputedStyle = (elt, pseudoElt) => {
-      const styles = originalGetComputedStyle(elt, pseudoElt);
-      return createFastComputedStyleProxy(styles);
-    };
-
     try {
       // Wait for all custom fonts to be fully loaded with a timeout to prevent hanging
       if (typeof document !== "undefined" && document.fonts) {
@@ -246,37 +240,36 @@ export default function InvoiceTemplate({
       const pageElements = Array.from(parentElement.querySelectorAll(".print-page-ct"));
       if (pageElements.length === 0) return null;
 
-      // Render canvases of all pages in parallel to maximize multi-threading performance in browsers
-      const canvases = await Promise.all(
-        pageElements.map((pageEl) =>
-          html2canvas(pageEl as HTMLElement, {
-            scale: 3, // Higher scale for sharper text
-            useCORS: true,
-            backgroundColor: "#ffffff",
-            logging: false,
-            allowTaint: false,
-            imageTimeout: 1500,
-            scrollX: 0,
-            scrollY: 0,
-            onclone: (clonedDoc) => {
-              if (clonedDoc.defaultView) {
-                const originalGetComputedStyleClone = clonedDoc.defaultView.getComputedStyle;
-                clonedDoc.defaultView.getComputedStyle = (elt, pseudoElt) => {
-                  const styles = originalGetComputedStyleClone(elt, pseudoElt);
-                  return createFastComputedStyleProxy(styles);
-                };
-              }
+      // Render canvases of all pages sequentially to avoid freezing the browser main thread
+      const canvases: HTMLCanvasElement[] = [];
+      for (const pageEl of pageElements) {
+        const canvas = await html2canvas(pageEl as HTMLElement, {
+          scale: 2, // Standard scale for good quality/performance ratio
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          allowTaint: false,
+          imageTimeout: 1500,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            if (clonedDoc.defaultView) {
+              const originalGetComputedStyleClone = clonedDoc.defaultView.getComputedStyle;
+              clonedDoc.defaultView.getComputedStyle = (elt, pseudoElt) => {
+                const styles = originalGetComputedStyleClone(elt, pseudoElt);
+                return createFastComputedStyleProxy(styles);
+              };
             }
-          })
-        )
-      );
+          }
+        });
+        canvases.push(canvas);
+      }
 
       return canvases;
     } catch (error) {
       console.error("Canvas compilation failed:", error);
       return null;
     } finally {
-      window.getComputedStyle = originalGetComputedStyle;
       setIsBW(false);
     }
   };

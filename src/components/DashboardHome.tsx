@@ -102,11 +102,17 @@ export default function DashboardHome({
     }
   };
 
-  const rangeCache: any = getCacheForRange(timeRange, customStartDate, customEndDate) || {};
+  const rangeCache: any = useMemo(() => {
+    return getCacheForRange(timeRange, customStartDate, customEndDate) || {};
+  }, [getCacheForRange, timeRange, customStartDate, customEndDate]);
+
   const metrics = rangeCache.metrics || { totalRevenue: 0, totalProfit: 0, totalInvoices: 0, totalCustomers: 0 };
   const lowStockProducts = rangeCache.lowStockProducts || [];
   const paymentBreakdownData = rangeCache.paymentBreakdownData || [];
-  const rangeChartData = chartDataForRange(timeRange, customStartDate, customEndDate) || [];
+
+  const rangeChartData = useMemo(() => {
+    return chartDataForRange(timeRange, customStartDate, customEndDate) || [];
+  }, [chartDataForRange, timeRange, customStartDate, customEndDate]);
 
   const chartContainerRef1 = useRef<HTMLDivElement>(null);
   const chartContainerRef2 = useRef<HTMLDivElement>(null);
@@ -125,7 +131,10 @@ export default function DashboardHome({
 
   const prevTimeRangeMap: Record<string, string> = { TODAY: "YESTERDAY", THIS_WEEK: "LAST_WEEK" };
   const prevTimeRange = prevTimeRangeMap[timeRange] || null;
-  const prevRangeCache: any = prevTimeRange ? getCacheForRange(prevTimeRange) : null;
+
+  const prevRangeCache: any = useMemo(() => {
+    return prevTimeRange ? getCacheForRange(prevTimeRange) : null;
+  }, [getCacheForRange, prevTimeRange]);
   const prevMetrics = prevRangeCache?.metrics || { totalRevenue: 0, totalProfit: 0, totalInvoices: 0, totalCustomers: 0 };
 
   const getGrowth = (curr: number, prev: number) => {

@@ -281,6 +281,16 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
     }
   }, [authError, clearAuthError]);
 
+  // Clear auth input fields and errors when switching between /login and /signup
+  useEffect(() => {
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthName('');
+    setAuthErrorLocal('');
+    setShowPassword(false);
+    setShowPasswordReg(false);
+  }, [currentPath]);
+
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactName || !contactEmail || !contactMessage) return;
@@ -387,7 +397,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800 relative z-10 select-none">
+    <div className="min-h-screen bg-[#020205] flex flex-col font-sans text-slate-800 relative z-10 select-none">
       
       {/* Loading Overlay */}
       <AnimatePresence>
@@ -406,6 +416,9 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
         )}
       </AnimatePresence>
 
+      {/* Dynamic Content Wrapper for Premium Edge Curve */}
+      <div className="flex-grow flex flex-col bg-slate-50 rounded-b-[2.5rem] md:rounded-b-[3.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.4)] z-20 relative pb-16">
+        
       {/* Elegant minimalist header */}
       <header className="sticky top-0 bg-white/80 backdrop-blur-lg border-b border-slate-100 z-40 transition-all shrink-0">
         <div className="max-w-7xl w-full mx-auto px-6 py-4 flex items-center justify-between gap-4">
@@ -458,7 +471,7 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
       </header>
 
       {/* Main Container */}
-      <main id="main-content-area" className="flex-grow max-w-7xl w-full mx-auto px-6 py-0 md:py-2">
+      <main id="main-content-area" className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-0 md:py-2">
                 {/* ==================== HOME PAGE (/) ==================== */}
         {currentPath === '/' && (
           <div className="space-y-8 md:space-y-16">
@@ -656,40 +669,41 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
             </div>
 
             {/* HIGH-CONVERSION CTA FOOTER LINE */}
-            <div id="cta-notification-banner" className="bg-gradient-to-b from-slate-900 to-slate-950 border border-indigo-500/20 text-white rounded-[2.5rem] p-8 md:p-14 text-left relative overflow-hidden shadow-[0_30px_90px_rgba(30,41,59,0.7)] max-w-5xl mx-auto select-none group hover:border-indigo-500/40 transition-colors duration-500">
+            <div id="cta-notification-banner" className="bg-gradient-to-br from-slate-900/90 via-slate-900 to-indigo-950/90 backdrop-blur-xl border border-indigo-500/20 text-white rounded-[2rem] p-8 md:p-12 text-left relative overflow-hidden shadow-[0_20px_50px_rgba(30,41,59,0.5)] max-w-5xl mx-auto select-none group hover:border-indigo-500/40 hover:shadow-indigo-500/20 transition-all duration-700">
               {/* Dynamic Ambient Neon Radial Shines */}
-              <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-gradient-to-tr from-indigo-500/10 to-blue-500/15 rounded-full blur-[100px] pointer-events-none group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute -bottom-10 -left-10 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-tr from-indigo-500/20 via-blue-500/10 to-transparent rounded-full blur-[100px] pointer-events-none group-hover:scale-110 group-hover:translate-x-10 group-hover:-translate-y-10 transition-transform duration-1000 ease-out" />
+              <div className="absolute -bottom-10 -left-10 w-[300px] h-[300px] bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none group-hover:scale-110 transition-transform duration-1000 ease-out" />
               
-              <div className="relative z-10 max-w-2xl space-y-5">
-                <span className="inline-flex items-center space-x-2 text-[10px] text-indigo-400 bg-indigo-500/10 px-3.5 py-1.5 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/20 leading-none">
+              <div className="relative z-10 max-w-2xl space-y-4">
+                <div className="inline-flex items-center space-x-2 text-[10px] text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/20 leading-none shadow-inner shadow-indigo-500/10 backdrop-blur-sm">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                   </span>
                   <span>Active Registration Open</span>
-                </span>
+                </div>
                 
-                <h3 className="text-2xl md:text-3.5xl font-black tracking-tight text-white leading-snug font-sans">
+                <h3 className="text-2xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300 leading-tight font-sans drop-shadow-sm">
                   Onboard Your Shop Ledgers onto the <br className="hidden md:inline" />
-                  Most Trusted Smart Vyapar Ecosystem
+                  Most Trusted Ecosystem
                 </h3>
                 
-                <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-semibold">
+                <p className="text-[13px] md:text-sm text-slate-400 leading-relaxed font-medium max-w-xl">
                   Stop looking up manual ledger lists. Implement Smart Vyapar on your browser or home computer now to gain advanced inventory forecasting, unified customer payment ledger tracking, and secure Firebase synchronization.
                 </p>
                 
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <button
                     onClick={(e) => handleLinkClick(e, '/signup')}
-                    className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:scale-[1.01] transition-all duration-200 inline-flex items-center justify-center space-x-1.5 uppercase tracking-wide cursor-pointer text-center"
+                    className="group/btn px-6 py-3 bg-white text-slate-900 font-black text-xs rounded-xl shadow-xl shadow-white/10 hover:shadow-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 inline-flex items-center justify-center space-x-2 uppercase tracking-wide cursor-pointer text-center relative overflow-hidden"
                   >
-                    <span>Create Free Workspace</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <span className="relative z-10">Create Free Workspace</span>
+                    <ArrowRight className="h-3.5 w-3.5 relative z-10 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-100 to-slate-200 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                   </button>
                   <button
                     onClick={(e) => handleLinkClick(e, '/features')}
-                    className="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all duration-200 inline-flex items-center justify-center space-x-1.5 uppercase tracking-wide cursor-pointer text-center"
+                    className="px-6 py-3 bg-transparent hover:bg-slate-800/50 border-2 border-slate-700 hover:border-slate-600 text-white font-bold text-xs rounded-xl transition-all duration-300 inline-flex items-center justify-center space-x-1.5 uppercase tracking-wide cursor-pointer text-center backdrop-blur-sm"
                   >
                     <span>View System Capabilities</span>
                   </button>
@@ -2036,27 +2050,24 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
         )}
         {/* ==================== BRANDED SECURE LOGIN PAGE (/login) ==================== */}
         {currentPath === '/login' && (
-          <div className="max-w-md mx-auto pt-8 pb-12 animate-fade-in text-center px-4">
+          <div className="w-full max-w-md mx-auto pt-6 sm:pt-8 pb-12 animate-fade-in text-center px-4 sm:px-0">
             
             {/* Center Container Card */}
-            <div className="bg-white/85 backdrop-blur-md border border-slate-200 p-6 md:p-8 rounded-3xl shadow-xl hover:shadow-2xl hover:border-slate-300/80 transition-all duration-300 flex flex-col justify-between space-y-6 text-left">
+            <div className="bg-white/85 backdrop-blur-md border border-slate-200 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl hover:shadow-2xl hover:border-slate-300/80 transition-all duration-300 flex flex-col justify-between space-y-6 text-left">
               
               <div className="space-y-5">
-                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 pb-4">
                   <div className="space-y-1">
-                    <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                      Sign In to <span className="text-blue-600">Smart Vyapar</span>
+                    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                      Sign In to <span className="text-blue-600 break-words">Smart Vyapar</span>
                     </h1>
-                    <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1">
-                      Enter your Google/Gmail address and password to access your secure merchant workspace.
-                    </p>
                   </div>
                   <button
                     onClick={(e) => handleLinkClick(e, '/')}
                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 hover:border-slate-300 text-slate-650 hover:text-slate-905 text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer outline-none active:scale-95 shrink-0"
                   >
                     <ArrowLeft className="w-3 h-3" />
-                    <span>Back</span>
+                    <span className="hidden sm:inline">Back</span>
                   </button>
                 </div>
 
@@ -2170,27 +2181,24 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
 
         {/* ==================== BRANDED SECURE SIGN UP PAGE (/signup) ==================== */}
         {currentPath === '/signup' && (
-          <div className="max-w-md mx-auto pt-8 pb-12 animate-fade-in text-center px-4">
+          <div className="w-full max-w-md mx-auto pt-6 sm:pt-8 pb-12 animate-fade-in text-center px-4 sm:px-0">
             
             {/* Center Container Card */}
-            <div className="bg-white/85 backdrop-blur-md border border-slate-200 p-6 md:p-8 rounded-3xl shadow-xl hover:shadow-2xl hover:border-slate-300/80 transition-all duration-300 flex flex-col justify-between space-y-6 text-left">
+            <div className="bg-white/85 backdrop-blur-md border border-slate-200 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl hover:shadow-2xl hover:border-slate-300/80 transition-all duration-300 flex flex-col justify-between space-y-6 text-left">
               
               <div className="space-y-5">
-                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 pb-4">
                   <div className="space-y-1">
-                    <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                      Register with <span className="text-blue-600">Smart Vyapar</span>
+                    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                      Register with <span className="text-blue-600 break-words">Smart Vyapar</span>
                     </h1>
-                    <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1">
-                      Enter your existing Gmail address and password to register your secure store ledger.
-                    </p>
                   </div>
                   <button
                     onClick={(e) => handleLinkClick(e, '/')}
                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 hover:border-slate-300 text-slate-650 hover:text-slate-905 text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer outline-none active:scale-95 shrink-0"
                   >
                     <ArrowLeft className="w-3 h-3" />
-                    <span>Back</span>
+                    <span className="hidden sm:inline">Back</span>
                   </button>
                 </div>
 
@@ -2318,42 +2326,50 @@ export default function PublicPages({ currentPath, onNavigate, isLoggedIn, onAut
         )}
 
       </main>
+      </div>
 
       {/* Global Footer */}
-      <footer className="relative bg-gradient-to-b from-slate-950 via-slate-950 to-[#020205] text-slate-300 py-20 px-8 border-t border-slate-800/80 text-left shrink-0 overflow-hidden select-none shadow-[rgba(0,0,0,0.5)_0px_-30px_60px_-15px]">
+      <footer className="relative bg-[#020205] text-slate-300 pt-32 pb-12 px-8 text-left shrink-0 overflow-hidden select-none -mt-10 z-10">
         {/* Subtle Decorative Ambient Lighting */}
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[150px] pointer-events-none animate-pulse duration-[10000ms]" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none animate-pulse duration-[7000ms] delay-1000" />
 
-        <div className="max-w-7xl mx-auto space-y-12 relative z-10">
+        <div className="max-w-7xl mx-auto space-y-16 relative z-10">
           
           {/* TOP SECTION: Name of app + logo, description, and status badges (First section of footer as requested) */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-slate-800/55 pb-10">
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex items-center space-x-3">
-                <img 
-                  src="/apple-touch-icon.png" 
-                  alt="Smart Vyapar Logo" 
-                  className="h-14 w-14 rounded-2xl object-contain border border-slate-700 bg-white p-1.5 shadow-xl shadow-indigo-500/20 ring-4 ring-indigo-500/10 animate-pulse" 
-                  referrerPolicy="no-referrer"
-                />
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10 border-b border-slate-800/50 pb-12">
+            <div className="space-y-5 max-w-2xl">
+              <div className="flex items-center space-x-4 group cursor-pointer">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-indigo-500 rounded-2xl blur-md opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                  <img 
+                    src="/apple-touch-icon.png" 
+                    alt="Smart Vyapar Logo" 
+                    className="relative h-16 w-16 rounded-2xl object-contain border border-slate-700/50 bg-slate-900 p-2 shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3" 
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
                 <div className="leading-tight">
-                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 tracking-tight block font-sans">Smart Vyapar</span>
-                  <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest font-mono">Workspace OS v1.0</span>
+                  <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight block font-sans">Smart Vyapar</span>
+                  <span className="text-[11px] font-extrabold text-indigo-400 uppercase tracking-widest font-mono mt-1 block opacity-80">Workspace OS v1.0</span>
                 </div>
               </div>
-              <p className="text-sm text-slate-300 leading-relaxed font-semibold">
+              <p className="text-sm text-slate-400 leading-relaxed font-medium max-w-md">
                 Sleek offline-first billing & inventory ecosystem for micro-merchants. Design invoices, monitor stocks, and synchronize securely with Cloud FireStore.
               </p>
             </div>
             
             {/* Premium Verification Badges and Quick Stats */}
-            <div className="flex flex-wrap gap-3 shrink-0">
-              <span className="inline-flex items-center space-x-2 bg-slate-900 border border-slate-800 text-xs font-bold text-emerald-450 px-3.5 py-2 rounded-xl">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex flex-wrap gap-4 shrink-0">
+              <span className="inline-flex items-center space-x-2 bg-slate-900/50 backdrop-blur-sm border border-emerald-500/20 text-xs font-bold text-emerald-400 px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/5 hover:border-emerald-500/40 transition-colors cursor-default">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
                 <span>Firestore Sync Live</span>
               </span>
-              <span className="inline-flex items-center space-x-2 bg-slate-900 border border-slate-800 text-xs font-bold text-blue-400 px-3.5 py-2 rounded-xl">
+              <span className="inline-flex items-center space-x-2 bg-slate-900/50 backdrop-blur-sm border border-blue-500/20 text-xs font-bold text-blue-400 px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/5 hover:border-blue-500/40 transition-colors cursor-default">
+                <ShieldCheck className="w-3.5 h-3.5" />
                 <span>99.9% Uptime SLA</span>
               </span>
             </div>

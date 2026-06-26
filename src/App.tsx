@@ -991,7 +991,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 w-full text-slate-800 overflow-hidden">
+    <div className="flex h-screen w-full text-slate-800 overflow-hidden" style={{ backgroundColor: "#f8fafc", backgroundImage: "radial-gradient(#e2e8f0 1.5px, transparent 1.5px)", backgroundSize: "24px 24px", backgroundPosition: "0 0" }}>
       {/* OVERLAY FOR MOBILE SIDEBAR */}
       {mobileMenuOpen && (
         <motion.div

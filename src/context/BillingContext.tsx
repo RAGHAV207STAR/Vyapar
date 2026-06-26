@@ -812,6 +812,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     setAuthError(null);
     const intent = localStorage.getItem('vyapar_auth_intent') || 'login';
+    sessionStorage.setItem('active_login_action_taken', 'true');
     if (isCloudConnected) {
       try {
         const provider = new GoogleAuthProvider();
@@ -844,6 +845,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     setAuthError(null);
     localStorage.setItem('vyapar_auth_intent', isSignUp ? 'signup' : 'login');
+    sessionStorage.setItem('active_login_action_taken', 'true');
     if (isCloudConnected) {
       try {
         if (isSignUp) {

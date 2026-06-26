@@ -851,8 +851,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     }
 
-    // 2. Trigger due payment notifications for active pending / overdue invoices with balance > 0
-    if (bills.length > 0) {
+    // 2. Trigger due payment notifications for active pending / overdue invoices with balance > 0 (Only in the evening after 6 PM)
+    const currentHour = new Date().getHours();
+    if (bills.length > 0 && currentHour >= 18) {
       const pendingBills = bills.filter(b => {
         const balance = Number(b.balanceAmount ?? 0);
         return balance > 0 && (b.paymentStatus === 'PENDING' || b.paymentStatus === 'OVERDUE');
@@ -895,10 +896,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [user, bills, notifications, triggerNotification, markAsRead, isBillingLoading]);
 
-  // Automated Authorized Login Alerts (security) on login session start
+  // Automated Authorized Login Alerts (security) on active login
   useEffect(() => {
-    if (user && !sessionStorage.getItem('sb_login_notified')) {
-      sessionStorage.setItem('sb_login_notified', 'true');
+    if (user && sessionStorage.getItem('active_login_action_taken') === 'true') {
+      sessionStorage.removeItem('active_login_action_taken');
       triggerNotification(
         "Security Alert", 
         `Successful account authorization detected for user "${user.email || 'Admin'}".`, 
@@ -915,76 +916,93 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     // 1. Daily Operations Digest (EOD)
     if (settings.dailyBusinessSummary) {
-      const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-      const key = `sb_eod_digest_alert_${todayStr}_${userId}`;
-      if (!localStorage.getItem(key)) {
-        try {
-          const todayCache = getCacheForRange("TODAY");
-          const metrics = todayCache?.metrics;
-          
-          if (metrics && metrics.totalInvoices > 0) {
-            localStorage.setItem(key, 'true');
-            triggerNotification(
-              "Today's Business Summary", 
-              `Today's Digest: Sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} across ${metrics.totalInvoices} invoices generated today, yielding an estimated net profit of ₹${metrics.totalProfit.toLocaleString('en-IN')}.`,
-              "dailySummary"
-            );
+      const currentHour = now.getHours();
+      // Only send daily digest in the evening (after 6 PM)
+      if (currentHour >= 18) {
+        const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        const key = `sb_eod_digest_alert_${todayStr}_${userId}`;
+        if (!localStorage.getItem(key)) {
+          try {
+            const todayCache = getCacheForRange("TODAY");
+            const metrics = todayCache?.metrics;
+            
+            if (metrics && metrics.totalInvoices > 0) {
+              localStorage.setItem(key, 'true');
+              triggerNotification(
+                "Today's Business Summary", 
+                `Today's Digest: Sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} across ${metrics.totalInvoices} invoices generated today, yielding an estimated net profit of ₹${metrics.totalProfit.toLocaleString('en-IN')}.`,
+                "dailySummary"
+              );
+            }
+          } catch (e) {
+            console.warn("Could not generate daily digest notification dynamically:", e);
           }
-        } catch (e) {
-          console.warn("Could not generate daily digest notification dynamically:", e);
         }
       }
     }
 
     // 2. Weekly Analytics Report
     if (settings.weeklyBusinessReport) {
-      const getWeekKey = (d: Date) => {
-        const oneJan = new Date(d.getFullYear(), 0, 1);
-        const numberOfDays = Math.floor((d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
-        const weekNum = Math.ceil((d.getDay() + 1 + numberOfDays) / 7);
-        return `${d.getFullYear()}_W${weekNum}`;
-      };
+      const currentDayOfWeek = now.getDay(); // 0 is Sunday
+      const currentHour = now.getHours();
       
-      const weekStr = getWeekKey(now);
-      const key = `sb_weekly_report_alert_${weekStr}_${userId}`;
-      if (!localStorage.getItem(key)) {
-        try {
-          const weeklyCache = getCacheForRange("THIS_WEEK");
-          const metrics = weeklyCache?.metrics;
-          
-          if (metrics && metrics.totalInvoices > 0) {
-            localStorage.setItem(key, 'true');
-            triggerNotification(
-              "Weekly Business Report", 
-              `Your 7-day macro performance report is ready: Total sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} with profit margin at ${metrics.profitMargin.toFixed(1)}%. Click to explore trends!`,
-              "weeklySummary"
-            );
+      // Only send weekly report on Sunday evening (after 6 PM)
+      if (currentDayOfWeek === 0 && currentHour >= 18) {
+        const getWeekKey = (d: Date) => {
+          const oneJan = new Date(d.getFullYear(), 0, 1);
+          const numberOfDays = Math.floor((d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+          const weekNum = Math.ceil((d.getDay() + 1 + numberOfDays) / 7);
+          return `${d.getFullYear()}_W${weekNum}`;
+        };
+        
+        const weekStr = getWeekKey(now);
+        const key = `sb_weekly_report_alert_${weekStr}_${userId}`;
+        if (!localStorage.getItem(key)) {
+          try {
+            const weeklyCache = getCacheForRange("THIS_WEEK");
+            const metrics = weeklyCache?.metrics;
+            
+            if (metrics && metrics.totalInvoices > 0) {
+              localStorage.setItem(key, 'true');
+              triggerNotification(
+                "Weekly Business Report", 
+                `Your 7-day macro performance report is ready: Total sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} with profit margin at ${metrics.profitMargin.toFixed(1)}%. Click to explore trends!`,
+                "weeklySummary"
+              );
+            }
+          } catch (e) {
+            console.warn("Could not generate weekly report notification dynamically:", e);
           }
-        } catch (e) {
-          console.warn("Could not generate weekly report notification dynamically:", e);
         }
       }
     }
 
     // 3. Monthly Performance Report
     if (settings.monthlyPerformanceReport) {
-      const monthStr = `${now.getFullYear()}_M${now.getMonth() + 1}`;
-      const key = `sb_monthly_report_alert_${monthStr}_${userId}`;
-      if (!localStorage.getItem(key)) {
-        try {
-          const monthlyCache = getCacheForRange("THIS_MONTH");
-          const metrics = monthlyCache?.metrics;
-          
-          if (metrics && metrics.totalInvoices > 0) {
-            localStorage.setItem(key, 'true');
-            triggerNotification(
-              "Monthly Business Summary Ready", 
-              `Monthly Performance Review: Total sales reached ₹${metrics.totalRevenue.toLocaleString('en-IN')} with an average bill size of ₹${Math.round(metrics.averageBillValue).toLocaleString('en-IN')}. Keep it up!`,
-              "monthlySummary"
-            );
+      const todayDate = now.getDate();
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const currentHour = now.getHours();
+      
+      // Only send monthly report on the last day of the month, after 6 PM
+      if (todayDate === lastDayOfMonth && currentHour >= 18) {
+        const monthStr = `${now.getFullYear()}_M${now.getMonth() + 1}`;
+        const key = `sb_monthly_report_alert_${monthStr}_${userId}`;
+        if (!localStorage.getItem(key)) {
+          try {
+            const monthlyCache = getCacheForRange("THIS_MONTH");
+            const metrics = monthlyCache?.metrics;
+            
+            if (metrics && metrics.totalInvoices > 0) {
+              localStorage.setItem(key, 'true');
+              triggerNotification(
+                "Monthly Business Summary Ready", 
+                `Monthly Performance Review: Total sales reached ₹${metrics.totalRevenue.toLocaleString('en-IN')} with an average bill size of ₹${Math.round(metrics.averageBillValue).toLocaleString('en-IN')}. Keep it up!`,
+                "monthlySummary"
+              );
+            }
+          } catch (e) {
+            console.warn("Could not generate monthly summary notification dynamically:", e);
           }
-        } catch (e) {
-          console.warn("Could not generate monthly summary notification dynamically:", e);
         }
       }
     }

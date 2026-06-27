@@ -25,7 +25,8 @@ import {
   Sliders,
   Phone,
   ArrowUpDown,
-  Info
+  Info,
+  ShoppingBag
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useBilling } from '../context/BillingContext';
@@ -38,10 +39,32 @@ const formatNumber = (num: number) => {
   return num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 
-export default function AIReplenishmentDashboard() {
+const formatStockDisplay = (qty: number, category: string) => {
+  if (category?.toLowerCase().includes('cement') || category?.toLowerCase().includes('sand')) {
+    return qty.toLocaleString('en-IN');
+  }
+  return Number.isInteger(qty) ? qty.toString() : qty.toFixed(1);
+};
+
+interface AIReplenishmentDashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export default function AIReplenishmentDashboard({ onNavigate }: AIReplenishmentDashboardProps = {}) {
   const { inventory, adjustStock } = useInventory();
   const { bills, showToast, isCloudConnected, isOnline, user } = useBilling();
   const CatalogSize = inventory.length;
+
+  // Compute 3 most critically low stock items for the immediate dashboard notification alert
+  const criticalLowStock = useMemo(() => {
+    return (inventory || [])
+      .filter((p: any) => {
+        const limit = p.minStockAlert !== undefined ? p.minStockAlert : 5;
+        return Number(p.stock || 0) <= limit;
+      })
+      .sort((a: any, b: any) => Number(a.stock || 0) - Number(b.stock || 0))
+      .slice(0, 3);
+  }, [inventory]);
 
   // Sync purchase orders for supplier intelligence
   const [receivedOrders, setReceivedOrders] = useState<any[]>([]);
@@ -946,6 +969,63 @@ export default function AIReplenishmentDashboard() {
               </div>
             </div>
           </div>
+
+          {/* CRITICAL LOW STOCK WARNINGS BANNER */}
+          {criticalLowStock.length > 0 && (
+            <div 
+              id="critical-inventory-badge-alerts-replenishment" 
+              className="bg-slate-950 border border-rose-500/25 rounded-[2rem] p-6 sm:p-8 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 transition-all duration-300 shadow-xl shadow-rose-950/20 animate-fade-in text-left relative overflow-hidden ring-1 ring-rose-500/10 mt-6 w-full"
+            >
+              {/* Neon radial backlight glows */}
+              <div className="absolute top-0 left-0 w-80 h-40 bg-rose-550/[0.06] rounded-full blur-[80px] pointer-events-none" />
+              <div className="absolute right-0 bottom-0 w-64 h-32 bg-amber-550/[0.04] rounded-full blur-[60px] pointer-events-none" />
+              
+              <div className="flex items-start gap-4 text-left relative z-10 flex-1 min-w-0">
+                <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-450 shadow-[0_0_15px_rgba(239,68,68,0.1)] shrink-0 mt-1">
+                  <AlertTriangle className="w-6 h-6 stroke-[2.5] text-rose-500 animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em] flex items-center gap-2 flex-wrap leading-none">
+                    Hazard Warning • <span className="bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">{criticalLowStock.length} Core lines depleted</span>
+                  </h4>
+                  <p className="text-[13px] font-semibold text-slate-200 leading-relaxed mt-2 max-w-3xl">
+                    The warehouse ledger reports that {criticalLowStock.length} essential inventory assets are currently running dangerously below active safety buffers. Reorder is necessary to maintain seamless operations.
+                  </p>
+                  
+                  <div className="flex flex-wrap items-center gap-3 mt-4">
+                    {criticalLowStock.map((item: any, idx: number) => {
+                      const percentOfLimit = Math.round((Number(item.stock || 0) / (item.minStockAlert || 5)) * 105);
+                      return (
+                        <div 
+                          key={idx} 
+                          className="inline-flex items-center gap-2.5 bg-white/[0.03] border border-white/[0.06] hover:border-rose-550/20 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-300 transition-colors"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                          </span>
+                          <span className="text-slate-100 font-extrabold">{item.name}</span>
+                          <span className="text-slate-500">|</span>
+                          <span className="font-mono text-xs font-black text-rose-400">{formatStockDisplay(item.stock, item.category || 'General')}</span> / 
+                          <span className="font-mono text-slate-400 text-[10px]">{item.minStockAlert || 5}</span> 
+                          <span className="text-[9.5px] px-1.5 py-0.5 bg-rose-500/10 text-rose-400 rounded-md font-black font-mono">({Math.min(99, percentOfLimit)}%)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                type="button"
+                onClick={() => onNavigate && onNavigate('Purchase Orders')}
+                className="w-full xl:w-auto self-stretch xl:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black shadow-[0_4px_25px_0_rgba(244,63,94,0.3)] hover:shadow-[0_6px_30px_0_rgba(244,63,94,0.4)] transition-all rounded-2xl uppercase tracking-widest cursor-pointer group active:scale-98 relative z-10 border border-rose-500/20"
+              >
+                <ShoppingBag className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" /> 
+                <span>Trigger PO Reorder</span>
+              </button>
+            </div>
+          )}
 
           {/* ----------------------------------------------------
               SECTION 8: AI RECOMMENDATIONS PANEL

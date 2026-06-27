@@ -899,7 +899,7 @@ export default function BillingSystem({
       setProducts((prev) =>
         prev.map((p) => {
           if (p.id === lineId) {
-            const qty = p.quantity || 1;
+            const qty = (p.quantity && p.quantity > 0) ? p.quantity : 1;
             return {
               ...p,
               inventoryId: invItem.id,
@@ -908,6 +908,7 @@ export default function BillingSystem({
               hsn: invItem.hsn || "",
               unit: invItem.unit,
               price: invItem.sellingPrice,
+              quantity: qty,
               total: invItem.sellingPrice * qty,
             };
           }
@@ -1085,30 +1086,6 @@ export default function BillingSystem({
              });
           } catch(e) {
              console.error("Could not sync terms to profile", e);
-          }
-        }
-
-        // Auto-save/update customer in custom customer directory
-        if (customerName.trim() && customerName.trim() !== "Cash / Walk-in" && customerName.trim() !== "Cash") {
-          try {
-            const cleanPhone = customerPhone.trim();
-            // Find if customer with same name or phone already exists
-            const existingCust = customers.find(c => 
-              c.name.trim().toLowerCase() === customerName.trim().toLowerCase() ||
-              (cleanPhone && c.phone.trim() === cleanPhone)
-            );
-            
-            saveCustomer({
-              id: existingCust?.id,
-              name: customerName.trim(),
-              phone: cleanPhone,
-              address: customerAddress.trim(),
-              gstNumber: customerGst.trim() || undefined
-            }).catch((err) => {
-              console.warn("Could not auto-save customer to directory:", err);
-            });
-          } catch (custErr) {
-            console.warn("Error triggering auto-save customer:", custErr);
           }
         }
 

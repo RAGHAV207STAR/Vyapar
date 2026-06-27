@@ -242,7 +242,7 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return [];
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncPendingCount, setSyncPendingCount] = useState(0);
@@ -600,8 +600,41 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.log(`[AUTH LOGIN STATE] Firebase UID Verified: ${firebaseUser.uid}`);
           console.log(`[AUTH LOGIN STATE] Email Verified: ${firebaseUser.email || 'N/A'}`);
 
+          // 1. FAST LOCAL CACHE LOAD (to unblock UI immediately)
+          let localProfileLoaded = false;
+          const cachedProfile = localStorage.getItem(`sb_profile_${firebaseUser.uid}`);
+          if (cachedProfile) {
+            try {
+              const parsedLocalProfile = JSON.parse(cachedProfile);
+              const email = firebaseUser.email || '';
+              const expectedRole = (email === 'raghavpratap987654@gmail.com') ? 'admin' : (parsedLocalProfile.role === 'admin' ? 'user' : (parsedLocalProfile.role || 'user'));
+              if (parsedLocalProfile.role !== expectedRole) {
+                parsedLocalProfile.role = expectedRole;
+                localStorage.setItem(`sb_profile_${firebaseUser.uid}`, JSON.stringify(parsedLocalProfile));
+              }
+              setProfile(parsedLocalProfile);
+              localProfileLoaded = true;
+            } catch (_) {}
+          } else {
+            setProfile(null);
+          }
+
+          const cachedBills = localStorage.getItem(`sb_bills_${firebaseUser.uid}`);
+          if (cachedBills) {
+            try {
+              setBills(JSON.parse(cachedBills));
+            } catch (e) {}
+          } else {
+            setBills([]);
+          }
+
+          if (localProfileLoaded) {
+            setIsLoading(false); // Unblock UI immediately using local cache!
+          }
+
+          // 2. BACKGROUND CLOUD SYNC
           let exists = false;
-          let profileLoaded = false;
+          let cloudProfileLoaded = false;
           let canonicalProfile: UserProfile | null = null;
           
           try {
@@ -618,57 +651,26 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
                   canonicalProfile.role = expectedRole;
                   try {
                     await setDoc(profileRef, { role: expectedRole }, { merge: true });
-                  } catch (roleErr) {
-                    console.error("Failed to auto-assign role in Firestore:", roleErr);
-                  }
+                  } catch (roleErr) {}
                 }
                 setProfile(canonicalProfile);
                 localStorage.setItem(`sb_profile_${firebaseUser.uid}`, JSON.stringify(canonicalProfile));
-                profileLoaded = true;
-                
-                console.log(`[AUTH LOGIN STATE] Mapped to Firestore profile. Business ID: ${canonicalProfile.businessId}, Role: ${canonicalProfile.role}`);
-              } else {
-                console.log(`[AUTH LOGIN STATE] No user profile found in Firestore at path users/${firebaseUser.uid}`);
+                cloudProfileLoaded = true;
               }
             }
-          } catch (e) {
-            console.warn("Could not retrieve Firestore profile check on auth change:", e);
-          }
+          } catch (e) {}
           
           setAuthStatusText(null);
           
-          // Fallback to local storage only if not loaded from Firestore
-          if (!profileLoaded) {
-            const cachedProfile = localStorage.getItem(`sb_profile_${firebaseUser.uid}`);
-            if (cachedProfile) {
-              try {
-                const parsedLocalProfile = JSON.parse(cachedProfile);
-                const email = firebaseUser.email || '';
-                const expectedRole = (email === 'raghavpratap987654@gmail.com') ? 'admin' : (parsedLocalProfile.role === 'admin' ? 'user' : (parsedLocalProfile.role || 'user'));
-                if (parsedLocalProfile.role !== expectedRole) {
-                  parsedLocalProfile.role = expectedRole;
-                  localStorage.setItem(`sb_profile_${firebaseUser.uid}`, JSON.stringify(parsedLocalProfile));
-                }
-                setProfile(parsedLocalProfile);
-                profileLoaded = true;
-                console.log(`[AUTH LOGIN STATE] Loaded fallback local profile. Business ID: ${parsedLocalProfile.businessId}, Role: ${parsedLocalProfile.role}`);
-              } catch (_) {}
-            } else {
-              setProfile(null);
-            }
-          }
-
-          // Merge any duplicate business profile accounts (if they have mismatching business IDs)
-          if (profileLoaded) {
+          // Merge duplicates if needed
+          if (cloudProfileLoaded || localProfileLoaded) {
             const currentProfile = canonicalProfile || JSON.parse(localStorage.getItem(`sb_profile_${firebaseUser.uid}`) || 'null');
             if (currentProfile && currentProfile.businessId) {
-              // Audit local storage and retrieve local profile business ID to compare
               const localProfileStr = localStorage.getItem(`sb_profile_${firebaseUser.uid}`);
               if (localProfileStr) {
                 try {
                   const localProfileObj = JSON.parse(localProfileStr);
                   if (localProfileObj.businessId && localProfileObj.businessId !== currentProfile.businessId) {
-                    console.log(`[AUTH LOGIN STATE] Discrepancy mismatch detected! Local Business ID: ${localProfileObj.businessId}, Firestore Canonical Business ID: ${currentProfile.businessId}. Syncing billing database keys...`);
                     await mergeDuplicateProfiles(firebaseUser.uid, localProfileObj.businessId, currentProfile.businessId);
                   }
                 } catch (_) {}
@@ -676,21 +678,12 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             }
           }
 
-          // Load bills
-          const cachedBills = localStorage.getItem(`sb_bills_${firebaseUser.uid}`);
-          if (cachedBills) {
-            try {
-              setBills(JSON.parse(cachedBills));
-            } catch (e) {
-              console.error("Error parsing cached bills", e);
-            }
-          } else {
-            setBills([]);
-          }
+          // Trigger the general cloud sync
+          await fetchCloudData(firebaseUser.uid, cloudProfileLoaded || localProfileLoaded);
           
-          // Trigger the general cloud sync / fetch logic
-          await fetchCloudData(firebaseUser.uid, profileLoaded);
-          setIsLoading(false); // Finished loading everything safely
+          if (!localProfileLoaded) {
+            setIsLoading(false); // Unblock if it wasn't unblocked earlier
+          }
 
           // Google Analytics Auth tracking
           if (typeof window !== "undefined" && (window as any).gtag) {
@@ -975,7 +968,12 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.warn(`Failed to sync bill ${bill.billId}:`, e);
       }
     }
-  }, [user, bills, isCloudConnected, isOnline]);
+    
+    // Notify the user that syncing has completed
+    if (unsyncedBills.length > 0) {
+      showToast(`${unsyncedBills.length} offline invoice(s) have been permanently saved to the cloud.`, "success");
+    }
+  }, [user, bills, isCloudConnected, isOnline, showToast]);
 
   const resolveCollision = useCallback(async (strategy: 'local' | 'cloud' | 'merge', mergedPayload: any) => {
     if (!user || !activeCollision) return;
@@ -1629,24 +1627,55 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Helper to auto-save customer during bill creation/update
   const autoSaveCustomerFromBill = async (details: CustomerDetails) => {
     if (!details.name || details.name.trim() === '') return;
+
+    const nameTrimmed = details.name.trim();
+    const nameLower = nameTrimmed.toLowerCase();
     
-    // Find existing customer by exact name match (case insensitive)
-    const existing = customers.find(c => c.name.trim().toLowerCase() === details.name.trim().toLowerCase());
+    // Ignore cash/walk-in generic profiles
+    if (
+      nameLower === 'cash' || 
+      nameLower === 'cash / walk-in' || 
+      nameLower === 'walk-in' ||
+      nameLower === 'guest'
+    ) {
+      return;
+    }
+    
+    const cleanPhone = details.phone ? details.phone.trim() : '';
+    const cleanAddress = details.address ? details.address.trim() : '';
+    const cleanGst = details.gstNumber ? details.gstNumber.trim().toUpperCase() : '';
+    
+    // Find existing customer by exact Name (case insensitive) AND Mobile Number match
+    const existing = customers.find(c => 
+      c.name.trim().toLowerCase() === nameLower &&
+      (c.phone ? c.phone.trim() : '') === cleanPhone
+    );
     
     if (existing) {
+      // If every detail (name, phone, address, gst) is identical, do not save or update (already saved)
+      const existingAddress = existing.address ? existing.address.trim() : '';
+      const existingGst = existing.gstNumber ? existing.gstNumber.trim().toUpperCase() : '';
+      
+      const isExactlySame = 
+        existing.name.trim().toLowerCase() === nameLower &&
+        (existing.phone ? existing.phone.trim() : '') === cleanPhone &&
+        existingAddress.toLowerCase() === cleanAddress.toLowerCase() &&
+        existingGst === cleanGst;
+
+      if (isExactlySame) {
+        // Absolutely identical, do not trigger any update
+        return;
+      }
+
       let needsUpdate = false;
       const updatedData = { ...existing };
       
-      if (details.phone && existing.phone !== details.phone) {
-        updatedData.phone = details.phone;
+      if (cleanAddress && existingAddress.toLowerCase() !== cleanAddress.toLowerCase()) {
+        updatedData.address = cleanAddress;
         needsUpdate = true;
       }
-      if (details.address && existing.address !== details.address) {
-        updatedData.address = details.address;
-        needsUpdate = true;
-      }
-      if (details.gstNumber && existing.gstNumber !== details.gstNumber) {
-        updatedData.gstNumber = details.gstNumber;
+      if (cleanGst && existingGst !== cleanGst) {
+        updatedData.gstNumber = cleanGst;
         needsUpdate = true;
       }
       
@@ -1661,10 +1690,10 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         await saveCustomer({
           id: '',
-          name: details.name,
-          phone: details.phone || '',
-          address: details.address || '',
-          gstNumber: details.gstNumber || ''
+          name: nameTrimmed,
+          phone: cleanPhone,
+          address: cleanAddress,
+          gstNumber: cleanGst || undefined
         });
       } catch (err) {
         console.warn("Auto save customer failed", err);

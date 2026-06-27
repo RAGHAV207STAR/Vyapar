@@ -171,8 +171,8 @@ textarea:focus {
 /* Master Section Containers: Clear, prominent, and high visibility around COMPLETE sections only */
 div.bg-white.border.rounded-2xl,
 div.bg-white.border.rounded-3xl,
-div.bg-white.border.rounded-\[2rem\],
-div.bg-white.border.rounded-\[2.5rem\] {
+div.bg-white.border[class*="rounded-[2rem]"],
+div.bg-white.border[class*="rounded-[2.5rem]"] {
   border-style: solid !important;
   border-width: 1.5px !important;
   border-color: #94a3b8 !important; /* Prominent visible modern Slate-400 border around COMPLETE master sections only */

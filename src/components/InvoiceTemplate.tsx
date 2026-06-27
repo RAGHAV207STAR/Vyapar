@@ -21,12 +21,12 @@ import {
   Palette,
   Contrast,
   Edit,
+  Store,
 } from "lucide-react";
 import { useBilling } from "../context/BillingContext";
 import { Bill } from "../types";
 import { db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
-import appLogo from '../assets/images/app_logo_1780216474773.png';
 import { createFastComputedStyleProxy } from "../utils/stylePatch";
 
 interface InvoiceTemplateProps {
@@ -148,8 +148,7 @@ export default function InvoiceTemplate({
     if (profile?.upiId) {
       const cleanUpi = profile.upiId.trim();
       const cleanShopName = profile.shopName ? profile.shopName.trim() : 'Smart Vyapar';
-      const payableAmount = (bill.balanceAmount !== undefined && bill.balanceAmount > 0) ? bill.balanceAmount : bill.totalAmount;
-      const cleanAmount = payableAmount ? Number(payableAmount).toFixed(2) : '0.00';
+      const cleanAmount = Number(bill.totalAmount).toFixed(2);
       const upiUri = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(cleanShopName)}&am=${encodeURIComponent(cleanAmount)}&cu=INR`;
       return { type: 'upi', data: upiUri };
     }
@@ -326,6 +325,9 @@ export default function InvoiceTemplate({
       return;
     }
     setIsDownloading(true);
+    // Allow React state to flush and UI to show downloading state before freezing main thread with canvas generation
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const blob = await generatePDFBlob(exportInvoiceRef, bwMode);
     setIsDownloading(false);
     if (blob) {
@@ -619,7 +621,7 @@ Thank you for your business!`;
 
         <div className="flex flex-col items-center justify-center mt-2 mb-3">
           {/* Custom Representative Logo */}
-          <img src={appLogo} alt="Smart Vyapar Logo" className="w-12 h-12 object-contain rounded-lg mb-2 grayscale" />
+          <img src="/apple-touch-icon.png" alt="Smart Vyapar Logo" className="w-12 h-12 object-contain rounded-lg mb-2 grayscale" />
           <div className="text-center font-black tracking-tight text-[18px] uppercase leading-none text-black">
             SMART VYAPAR
           </div>
@@ -930,17 +932,15 @@ Thank you for your business!`;
           <img
             src={profile.logo}
             alt="Logo"
-            className="max-h-full max-w-full object-contain rounded-xl"
+            className="max-h-full max-w-full object-contain rounded-xl bg-transparent"
             referrerPolicy="no-referrer"
           />
         );
       }
       return (
-        <img
-          src={appLogo}
-          alt="Smart Vyapar Logo"
-          className="max-h-full max-w-full object-contain"
-        />
+        <div className="w-full h-full flex items-center justify-center bg-transparent rounded-xl text-slate-400">
+          <Store className="w-1/2 h-1/2 opacity-50" />
+        </div>
       );
     };
 
@@ -1014,7 +1014,7 @@ Thank you for your business!`;
               {/* HEADER */}
               <div className="flex justify-between items-start mb-3 text-left w-full min-w-0">
                 <div className="flex gap-3 sm:gap-5 items-center min-w-0 flex-1 mr-3 pl-2">
-                  <div className={`${billFormat === 'A5' ? 'w-14 h-18' : 'w-20 h-24'} flex items-center justify-center shrink-0`}>
+                  <div className={`${billFormat === 'A5' ? 'w-14 h-14' : 'w-20 h-20'} flex items-center justify-center shrink-0`}>
                     {renderBrandLogo()}
                   </div>
                   {renderShopNameAndSub()}
@@ -1221,9 +1221,11 @@ Thank you for your business!`;
               <div className="flex gap-2.5 items-center">
                 <div className="flex items-center justify-center w-10 h-10 shrink-0">
                   {profile?.logo ? (
-                    <img src={profile.logo} alt="Logo" className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                    <img src={profile.logo} alt="Logo" className="w-10 h-10 object-contain bg-transparent" referrerPolicy="no-referrer" />
                   ) : (
-                    <img src={appLogo} alt="Smart Vyapar Logo" className="w-10 h-10 object-contain" />
+                    <div className="w-full h-full flex items-center justify-center bg-transparent rounded-md text-slate-400">
+                      <Store className="w-6 h-6 opacity-50" />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1754,17 +1756,14 @@ Thank you for your business!`;
                 type="button"
                 onClick={handleShare}
                 disabled={isSharing || isDownloading || isPrintingPrecompile}
-                className="p-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
+                className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 disabled:bg-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
               >
                 {isSharing ? (
-                  <RefreshCw className="w-4.5 h-4.5 text-white animate-spin" />
+                  <RefreshCw className="w-5 h-5 text-emerald-500 animate-spin" />
                 ) : (
-                  <svg 
-                    className="w-4.5 h-4.5 text-white" 
-                    viewBox="0 0 16 16" 
-                    fill="currentColor"
-                  >
-                    <path d="M13.601 2.326A7.854 7.854 0 0 0 8 0a7.854 7.854 0 0 0-7.852 7.854c0 1.515.395 2.99 1.147 4.3l-1.217 4.45 4.545-1.192a7.86 7.86 0 0 0 3.758.958h.001c4.337 0 7.862-3.525 7.862-7.856a7.848 7.848 0 0 0-2.311-5.539zM8 14.394h-.001c-1.312-.001-2.602-.352-3.733-1.018l-.268-.159-2.774.727.741-2.71-.174-.277a6.52 6.52 0 0 1-1.002-3.413c0-3.6 2.932-6.531 6.535-6.531 1.744 0 3.385.68 4.618 1.913a6.516 6.516 0 0 1 1.914 4.62c-.002 3.601-2.935 6.532-6.536 6.532zM11.5 9.4c-.19-.094-1.129-.556-1.304-.619-.175-.064-.303-.095-.43.095-.127.19-.492.619-.603.746-.111.127-.222.143-.413.048-.19-.094-.8-.294-1.524-.94-.564-.503-.944-1.126-1.055-1.317-.111-.19-.012-.293.083-.387.086-.085.19-.222.285-.333.095-.11.127-.186.19-.31.064-.128.032-.24-.015-.334-.048-.095-.43-1.034-.59-1.42-.154-.374-.31-.323-.43-.323h-.368c-.19 0-.498.07-.76.355-.26.285-1 .978-1.001 2.387-.001 1.408 1.026 2.77 1.168 2.96 1.42 1.888 2.5 2.5 3.9 2.5h.1c.1 0 .3-.1.4-.2.1-.1.3-.3.4-.4.1-.1.2-.2.2-.3s.1-.2 0-.3z"/>
+                  <svg viewBox="0 0 24 24" className="w-5 h-5">
+                    <path fill="#25D366" d="M12.013 0C5.385 0 0 5.385 0 12.013c0 2.12.552 4.167 1.594 5.986L.045 24l6.136-1.611a11.957 11.957 0 0 0 5.831 1.517h.005c6.641 0 12.026-5.385 12.026-12.013C24.044 5.385 18.658 0 12.013 0z" />
+                    <path fill="#FFF" d="M19.167 17.653c-.31.874-1.802 1.66-2.483 1.748-.636.082-1.442.272-4.148-1.042-3.264-1.583-5.372-4.914-5.534-5.132-.161-.218-1.32-1.758-1.32-3.355 0-1.597.833-2.383 1.13-2.697.296-.314.646-.393.863-.393.216 0 .432 0 .614.009.2.01.468-.078.73.551.272.651.932 2.274 1.013 2.44.082.165.136.357.027.575-.109.218-.164.354-.326.545-.164.19-.344.417-.49.574-.164.175-.337.368-.146.697.19.328.847 1.401 1.821 2.268 1.258 1.119 2.302 1.464 2.63 1.63.326.166.518.15.71-.067.192-.218.825-.964 1.044-1.295.218-.33.435-.274.73-.163.296.111 1.868.88 2.188 1.04.32.16.534.24.614.37.081.13.081.75-.23 1.624z" />
                   </svg>
                 )}
               </button>
@@ -1883,8 +1882,11 @@ Thank you for your business!`;
                   alt={`Page ${idx + 1}`}
                   className="w-full object-contain block"
                   style={{
-                    width: '100%',
+                    width: '100vw',
+                    maxWidth: '100vw',
                     height: 'auto',
+                    margin: '0',
+                    padding: '0',
                     pageBreakAfter: idx < printImages.length - 1 ? 'always' : 'auto',
                     breakAfter: idx < printImages.length - 1 ? 'page' : 'auto',
                   }}
@@ -1914,11 +1916,15 @@ Thank you for your business!`;
       <style>{`
         @media print {
           @page {
-            size: ${billFormat === 'A4' ? 'A4' : (billFormat === 'A5' ? 'A5' : (billFormat === '80mm' ? '80mm auto' : '58mm auto'))};
+            size: ${billFormat === 'A4' ? '210mm 297mm' : (billFormat === 'A5' ? '148mm 210mm' : (billFormat === '80mm' ? '80mm auto' : '58mm auto'))};
             margin: 0 !important;
           }
           html, body {
-            width: ${billFormat === 'A4' ? '210mm' : (billFormat === 'A5' ? '148mm' : (billFormat === '80mm' ? '80mm' : '58mm'))};
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
           }
         }
       `}</style>

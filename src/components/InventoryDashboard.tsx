@@ -34,7 +34,8 @@ import {
   TrendingDown,
   Info,
   FileSpreadsheet,
-  FileDown
+  FileDown,
+  ArrowLeft
 } from "lucide-react";
 import { useInventory } from "../context/InventoryContext";
 import { useBilling } from "../context/BillingContext";
@@ -190,6 +191,35 @@ export const STANDARD_UNITS = [
   "Job / Project"
 ];
 
+export function getPreferredUnitsForCategory(category: string): string[] {
+  const cat = (category || '').toLowerCase();
+  
+  if (cat.includes('apparel') || cat.includes('clothing') || cat.includes('fashion') || cat.includes('footwear') || cat.includes('shoe') || cat.includes('jewelry')) {
+    return ["Piece (pcs)", "Pair (pr)", "Set (set)", "Dozen (doz)", "Box (box)", "Pack (pack)"];
+  }
+  if (cat.includes('food') || cat.includes('snack') || cat.includes('dairy') || cat.includes('egg') || cat.includes('fruit') || cat.includes('vegetable') || cat.includes('beverage') || cat.includes('drink') || cat.includes('grocery')) {
+    return ["Kilogram (kg)", "Gram (g)", "Litre (l)", "Piece (pcs)", "Pack (pack)", "Bottle (btl)", "Box (box)", "Can (can)", "Millilitre (ml)"];
+  }
+  if (cat.includes('medicine') || cat.includes('drug') || cat.includes('pharmacy') || cat.includes('medical') || cat.includes('beauty') || cat.includes('cosmetic') || cat.includes('personal care') || cat.includes('hygiene')) {
+    return ["Piece (pcs)", "Box (box)", "Pack (pack)", "Bottle (btl)", "Gram (g)", "Millilitre (ml)", "Litre (l)"];
+  }
+  if (cat.includes('hardware') || cat.includes('tool') || cat.includes('fastener') || cat.includes('building') || cat.includes('construction') || cat.includes('electrical') || cat.includes('wiring') || cat.includes('plumbing') || cat.includes('pipe') || cat.includes('paint')) {
+    return ["Piece (pcs)", "Kilogram (kg)", "Meter (m)", "Feet (ft)", "Set (set)", "Box (box)", "Roll (rl)", "Coil (cl)", "Litre (l)", "Sheet (sht)"];
+  }
+  if (cat.includes('electronics') || cat.includes('gadget') || cat.includes('computer') || cat.includes('laptop') || cat.includes('mobile') || cat.includes('accessory') || cat.includes('camera')) {
+    return ["Piece (pcs)", "Set (set)", "Box (box)", "Pack (pack)"];
+  }
+  if (cat.includes('service') || cat.includes('consultation') || cat.includes('labor')) {
+    return ["Service / Hour", "Job / Project", "Piece (pcs)"];
+  }
+  if (cat.includes('stationery') || cat.includes('office') || cat.includes('book') || cat.includes('novel') || cat.includes('paper')) {
+    return ["Piece (pcs)", "Pack (pack)", "Set (set)", "Box (box)", "Dozen (doz)"];
+  }
+  
+  // Default general preference
+  return ["Piece (pcs)", "Box (box)", "Pack (pack)", "Set (set)"];
+}
+
 export default function InventoryDashboard() {
   const { inventory, movements, isLoading, addProduct, updateProduct, deleteProduct, adjustStock } = useInventory();
   const { profile, showToast } = useBilling();
@@ -268,9 +298,16 @@ export default function InventoryDashboard() {
 
   const categoryOptions = useMemo(() => {
     const inventoryCats = inventory.map(item => item.category).filter(Boolean);
-    const combined = Array.from(new Set([...STANDARD_CATEGORIES, ...inventoryCats]));
+    const shopCat = profile?.category ? [profile.category] : [];
+    const combined = Array.from(new Set([...STANDARD_CATEGORIES, ...inventoryCats, ...shopCat]));
     return combined.sort((a, b) => a.localeCompare(b));
-  }, [inventory]);
+  }, [inventory, profile?.category]);
+
+  const dynamicUnits = useMemo(() => {
+    const preferred = getPreferredUnitsForCategory(formData.category);
+    const nonPreferred = STANDARD_UNITS.filter(u => !preferred.includes(u));
+    return [...preferred, ...nonPreferred];
+  }, [formData.category]);
 
   // Form Submissions
   const handleEnterToNext = (e: React.KeyboardEvent) => {
@@ -310,10 +347,12 @@ export default function InventoryDashboard() {
 
   const handleOpenNewProduct = () => {
     setEditingProduct(null);
+    const defaultCat = profile?.category || categoryOptions[0] || 'Electronics';
+    const preferredUnits = getPreferredUnitsForCategory(defaultCat);
     setFormData({
       name: '',
-      category: categoryOptions[0] || 'Electronics',
-      unit: 'Piece',
+      category: defaultCat,
+      unit: preferredUnits[0] || 'Piece (pcs)',
       stock: '',
       minStockAlert: '5',
       sku: '',
@@ -325,7 +364,7 @@ export default function InventoryDashboard() {
       description: '',
       hsn: ''
     });
-    setIsCustomCategory(false);
+    setIsCustomCategory(!categoryOptions.includes(defaultCat));
     setIsSkuRestricted(true);
     setProductModalOpen(true);
   };
@@ -511,6 +550,151 @@ export default function InventoryDashboard() {
     });
   }, [movements, ledgerProductFilter, ledgerActionFilter, ledgerDateFilter]);
 
+  if (isLedgerOpen) {
+    return (
+      <div className="w-full space-y-6 animate-in fade-in duration-155">
+        {/* Dynamic Ledger Header */}
+        <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-slate-800 p-6 md:p-8 rounded-[2rem] shadow-xl shadow-indigo-950/15">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 text-left space-y-3">
+            <div>
+              <button
+                onClick={() => setLedgerOpen(false)}
+                className="inline-flex items-center gap-2 text-xs font-black text-indigo-300 hover:text-white uppercase tracking-widest cursor-pointer mb-3 outline-none transition group bg-white/5 hover:bg-white/10 px-3.5 py-2 rounded-xl border border-white/5 active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 text-indigo-400 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Inventory
+              </button>
+              
+              <span className="text-[10px] uppercase tracking-widest font-black text-emerald-400 font-mono flex items-center gap-1 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Real-time Audit logs
+              </span>
+              <h1 className="text-2xl font-black text-white tracking-tight mt-1 flex items-center gap-3">
+                <History className="w-7 h-7 text-indigo-400 stroke-[2.5]" />
+                Stock Movement Ledger Logs
+              </h1>
+              <p className="text-xs text-slate-300 font-semibold mt-1">Tracking history for item corrections, audits, and sales invoice reductions.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Micro Filter toolbar for dynamic Ledger searches */}
+        <div className="bg-white border border-slate-200 hover:border-indigo-150 p-5 rounded-3xl flex flex-col sm:flex-row items-center gap-4 shadow-sm transition-all duration-300 hover:shadow-[0_4px_25px_rgba(99,102,241,0.03)]">
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            {/* Date filter */}
+            <select
+              value={ledgerDateFilter}
+              onChange={e => setLedgerDateFilter(e.target.value as any)}
+              className="bg-white hover:bg-slate-50 text-slate-700 font-extrabold border border-slate-200 rounded-xl py-3 px-4 text-xs outline-none cursor-pointer select-none transition-all shadow-xs focus:ring-4 focus:ring-slate-100"
+            >
+              <option value="ALL">📅 All Time Movements</option>
+              <option value="TODAY">⚡ Adjusted Today</option>
+              <option value="THIS_WEEK">📆 Last 7 Days</option>
+              <option value="THIS_MONTH">🗓️ This Calendar Month</option>
+            </select>
+
+            {/* Product selection */}
+            <select
+              value={ledgerProductFilter}
+              onChange={e => setLedgerProductFilter(e.target.value)}
+              className="bg-white hover:bg-slate-50 text-slate-700 font-extrabold border border-slate-200 rounded-xl py-3 px-4 text-xs outline-none cursor-pointer select-none transition-all shadow-xs focus:ring-4 focus:ring-slate-100 max-w-xs"
+            >
+              <option value="ALL">📦 All Product Ledger</option>
+              {inventory.map(i => (
+                <option key={i.id} value={i.id}>{i.name}</option>
+              ))}
+            </select>
+
+            {/* Action filter */}
+            <select
+              value={ledgerActionFilter}
+              onChange={e => setLedgerActionFilter(e.target.value)}
+              className="bg-white hover:bg-slate-50 text-slate-700 font-extrabold border border-slate-200 rounded-xl py-3 px-4 text-xs outline-none cursor-pointer select-none transition-all shadow-xs focus:ring-4 focus:ring-slate-100"
+            >
+              <option value="ALL">🔧 All Actions Types</option>
+              <option value="Product Created">🆕 Product Created</option>
+              <option value="Stock Adjustment">✏️ Correction Audits</option>
+              <option value="Invoice Generated">📄 Invoices deduct</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Ledger Table Section */}
+        <div className="bg-white border border-slate-200/60 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs font-semibold min-w-[700px]">
+              <thead className="bg-slate-50 border-b border-slate-250 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <tr>
+                  <th className="py-4 px-6">Timestamp Reference</th>
+                  <th className="py-4 px-6">Target Product SKU</th>
+                  <th className="py-4 px-4 text-center">Transfer Type</th>
+                  <th className="py-4 px-4 text-right">Adjustment Qty</th>
+                  <th className="py-4 px-6">Audit Action / Reason Log</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-600">
+                {filteredLedgerMovements.map(mov => {
+                  const dateObj = new Date(mov.date);
+                  const relatedProduct = inventory.find(i => i.id === mov.productId);
+
+                  return (
+                    <tr key={mov.id} className="hover:bg-slate-50/50">
+                      <td className="py-4 px-6">
+                        <span className="font-extrabold text-slate-800 block">
+                          {dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                        <span className="text-[10px] text-slate-450 block font-medium">
+                          {dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-6">
+                        <span className="font-black text-slate-900 block truncate max-w-[250px]">{mov.productName}</span>
+                        {relatedProduct?.sku && (
+                          <span className="text-[9.5px] font-mono text-indigo-650 bg-indigo-50 px-1.5 py-0.5 rounded font-black inline-block mt-0.5">
+                            {relatedProduct.sku}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-4 px-4 text-center">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase
+                          ${mov.type === 'IN' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' : 'bg-rose-50 text-rose-700 border border-rose-150'}`}>
+                          {mov.type === 'IN' ? 'RECEIVE' : 'DEDUCT'}
+                        </span>
+                      </td>
+
+                      <td className={`py-4 px-4 text-right font-black font-mono text-xs ${mov.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {mov.type === 'IN' ? '+' : '-'}{mov.quantity}
+                      </td>
+
+                      <td className="py-4 px-6">
+                        <span className="text-slate-800 font-extrabold">{mov.actionType || 'Adjustment'}</span>
+                        <span className="text-[10px] text-slate-400 font-medium block mt-0.5 max-w-sm" title={mov.reason}>
+                          {mov.reason}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {filteredLedgerMovements.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center text-slate-400 font-bold uppercase tracking-wider">
+                      No audit movements recorded.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full space-y-6">
       
@@ -638,7 +822,7 @@ export default function InventoryDashboard() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
             {/* Category selection */}
             <select
               value={filterCategory}
@@ -662,26 +846,6 @@ export default function InventoryDashboard() {
               <option value="OUT">❌ Out of Stock</option>
               <option value="HEALTHY">✅ In Stock (Healthy)</option>
             </select>
-
-            <div className="flex items-center gap-2 border-slate-200 md:border-l md:pl-3 w-full md:w-auto justify-end md:justify-start">
-              <button
-                onClick={() => showToast("This feature is coming soon in the next update!", "info")}
-                title="Export list to Excel spreadsheet"
-                className="p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 border border-emerald-200 transition-all cursor-pointer outline-none flex items-center justify-center gap-2 text-xs font-bold shadow-sm active:scale-95"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span className="md:hidden lg:inline">Export Excel</span>
-              </button>
-              
-              <button
-                onClick={() => showToast("This feature is coming soon in the next update!", "info")}
-                title="Export list to PDF Catalog"
-                className="p-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 border border-indigo-200 transition-all cursor-pointer outline-none flex items-center justify-center gap-2 text-xs font-bold shadow-sm active:scale-95"
-              >
-                <FileDown className="w-4 h-4 text-indigo-600" />
-                <span className="md:hidden lg:inline">Export PDF</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1020,7 +1184,12 @@ export default function InventoryDashboard() {
                   </div>
 
                   <div className="group/field transition-all duration-200">
-                    <label className="block text-[11px] font-black text-slate-500 group-hover/field:text-slate-800 transition-colors uppercase tracking-widest mb-2">Category <span className="text-rose-500">*</span></label>
+                    <label className="flex items-center justify-between text-[11px] font-black text-slate-500 group-hover/field:text-slate-800 transition-colors uppercase tracking-widest mb-2">
+                      <span>Category <span className="text-rose-500">*</span></span>
+                      {profile?.category && formData.category.trim().toLowerCase() === profile.category.trim().toLowerCase() && (
+                        <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Shop Default</span>
+                      )}
+                    </label>
                     <div className="flex gap-2">
                       <select
                         className={`px-4 py-3.5 bg-white border border-slate-200 focus:border-slate-900 group-hover/field:border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all outline-none shadow-sm ${isCustomCategory ? 'w-1/3' : 'w-full'}`}
@@ -1058,7 +1227,12 @@ export default function InventoryDashboard() {
                   </div>
 
                   <div className="group/field transition-all duration-200">
-                    <label className="block text-[11px] font-black text-slate-500 group-hover/field:text-slate-800 transition-colors uppercase tracking-widest mb-2">Unit of Measure <span className="text-rose-500">*</span></label>
+                    <label className="flex items-center justify-between text-[11px] font-black text-slate-500 group-hover/field:text-slate-800 transition-colors uppercase tracking-widest mb-2">
+                      <span>Unit of Measure <span className="text-rose-500">*</span></span>
+                      {formData.category && (
+                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Optimized Selection</span>
+                      )}
+                    </label>
                     <select 
                       required 
                       value={formData.unit} 
@@ -1066,11 +1240,14 @@ export default function InventoryDashboard() {
                       onKeyDown={handleEnterToNext} 
                       className="w-full px-4 py-3.5 bg-white border border-slate-200 focus:border-slate-900 group-hover/field:border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all outline-none cursor-pointer shadow-sm hover:border-slate-300"
                     >
-                      {!STANDARD_UNITS.includes(formData.unit) && formData.unit && (
+                      {!dynamicUnits.includes(formData.unit) && formData.unit && (
                         <option value={formData.unit}>{formData.unit}</option>
                       )}
-                      {STANDARD_UNITS.map(u => (
-                        <option key={u} value={u}>{u}</option>
+                      {getPreferredUnitsForCategory(formData.category).map(u => (
+                        <option key={`pref-${u}`} value={u}>{u}</option>
+                      ))}
+                      {dynamicUnits.filter(u => !getPreferredUnitsForCategory(formData.category).includes(u)).map(u => (
+                        <option key={`other-${u}`} value={u}>{u}</option>
                       ))}
                     </select>
                   </div>
@@ -1568,146 +1745,6 @@ export default function InventoryDashboard() {
                 >
                   Adjust In-Stock Balance
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Complete Stock Movements Ledger log views sheet dynamically */}
-      {isLedgerOpen && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden text-left flex flex-col h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4.5 border-b border-indigo-50 bg-slate-50/60 flex justify-between items-center shrink-0">
-              <div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Stock Movement Ledger Logs</h3>
-                <p className="text-[11px] text-slate-400 font-medium">Tracking history for item corrections, audits, and sales invoice reductions.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setLedgerOpen(false)}
-                className="p-1 px-1.5 rounded-lg hover:bg-slate-200 text-slate-400 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Micro Filter toolbar for dynamic Ledger searches */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-2 text-xs shrink-0 font-bold text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Audits Filter:</span>
-                
-                {/* Date Filter Selection */}
-                <select
-                  value={ledgerDateFilter}
-                  onChange={e => setLedgerDateFilter(e.target.value as any)}
-                  className="bg-white border border-slate-200 rounded-lg py-1 px-2.5 text-[11px]"
-                >
-                  <option value="ALL">All Time Movements</option>
-                  <option value="TODAY">Adjusted Today</option>
-                  <option value="THIS_WEEK">Last 7 Days</option>
-                  <option value="THIS_MONTH">This Calendar Month</option>
-                </select>
-              </div>
-
-              {/* Product Reference Dropdown Filter */}
-              <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
-                <select
-                  value={ledgerProductFilter}
-                  onChange={e => setLedgerProductFilter(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg py-1 px-2.5 text-[11px] max-w-[180px]"
-                >
-                  <option value="ALL">All Product Ledger</option>
-                  {inventory.map(i => (
-                    <option key={i.id} value={i.id}>{i.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Action type correction filter */}
-              <div>
-                <select
-                  value={ledgerActionFilter}
-                  onChange={e => setLedgerActionFilter(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg py-1 px-2.5 text-[11px]"
-                >
-                  <option value="ALL">All Actions Types</option>
-                  <option value="Product Created">Product Created</option>
-                  <option value="Stock Adjustment">Correction Audits</option>
-                  <option value="Invoice Generated">Invoices deduct</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden w-full">
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs font-semibold min-w-[700px]">
-                    <thead className="bg-slate-50 border-b border-slate-250 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <tr>
-                      <th className="py-3 px-4">Timestamp Reference</th>
-                      <th className="py-3 px-4">Target Product SKU</th>
-                      <th className="py-3 px-3 text-center">Transfer Type</th>
-                      <th className="py-3 px-3 text-right">Adjustment Qty</th>
-                      <th className="py-3 px-4">Audit Action / Reason Log</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-600">
-                    {filteredLedgerMovements.map(mov => {
-                      const dateObj = new Date(mov.date);
-                      const relatedProduct = inventory.find(i => i.id === mov.productId);
-
-                      return (
-                        <tr key={mov.id} className="hover:bg-slate-50/50">
-                          <td className="py-3 px-4">
-                            <span className="font-extrabold text-slate-800 block">
-                              {dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            </span>
-                            <span className="text-[10px] text-slate-450 block font-medium">
-                              {dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <span className="font-black text-slate-900 block truncate max-w-[200px]">{mov.productName}</span>
-                            {relatedProduct?.sku && (
-                              <span className="text-[9.5px] font-mono text-indigo-650 bg-indigo-50 px-1.5 py-0.5 rounded font-black inline-block mt-0.5">
-                                {relatedProduct.sku}
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-3 text-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase
-                              ${mov.type === 'IN' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' : 'bg-rose-50 text-rose-700 border border-rose-150'}`}>
-                              {mov.type === 'IN' ? 'RECEIVE' : 'DEDUCT'}
-                            </span>
-                          </td>
-
-                          <td className={`py-3 px-3 text-right font-black font-mono text-xs ${mov.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {mov.type === 'IN' ? '+' : '-'}{mov.quantity}
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <span className="text-slate-800 font-extrabold">{mov.actionType || 'Adjustment'}</span>
-                            <span className="text-[10px] text-slate-400 font-medium block mt-0.5 truncate max-w-[245px]" title={mov.reason}>
-                              {mov.reason}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-
-                    {filteredLedgerMovements.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
-                          No audit movements recorded.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  </table>
-                </div>
               </div>
             </div>
           </div>

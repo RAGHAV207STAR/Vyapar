@@ -514,88 +514,88 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     switch(type) {
       case 'lowStock':
         await triggerNotification(
-          "Low Stock Alert", 
-          "Low Stock Alert: UltraTech Cement stock is running low.",
+          "📉 Low Stock Alert", 
+          "Heads up! You're running low on UltraTech Cement (Only 2 units left).",
           "lowStock",
           true
         );
         break;
       case 'duePayment':
         await triggerNotification(
-          "Pending Due Alert", 
-          "Pending Due Alert: ₹12,500 pending from ABC Builders.",
+          "⏳ Payment Pending", 
+          "Action required: You have an outstanding balance of ₹12,500 from ABC Builders.",
           "duePayment",
           true
         );
          break;
       case 'dailySummary':
         await triggerNotification(
-          "Today's Business Summary", 
-          "Today's Business Summary\n\nSales: ₹18,450\n\nInvoices: 12\n\nProfit: ₹3,200",
+          "📊 Daily Snapshot", 
+          "Great day! You generated 12 invoices today, bringing in ₹18,450 with an estimated profit of ₹3,200.",
           "dailySummary",
           true
         );
         break;
       case 'weeklySummary':
         await triggerNotification(
-          "Weekly Business Report", 
-          "Your weekly business report is ready.\n\nView sales trends, profit insights and top products.",
+          "📈 Weekly Performance Insights", 
+          "Incredible week! You processed 45 invoices for a total revenue of ₹1,45,000 (Estimated profit: ₹25,000). Keep the momentum going!",
           "weeklySummary",
           true
         );
         break;
       case 'monthlySummary':
         await triggerNotification(
-          "Monthly Business Summary Ready", 
-          "Monthly Business Summary Ready.\n\nReview your revenue, profit and growth.",
+          "🏆 Monthly Milestone Reached", 
+          "Outstanding month! You achieved a total revenue of ₹4,50,000 across 150 invoices (Estimated profit: ₹80,000). Fantastic work!",
           "monthlySummary",
           true
         );
         break;
       case 'inactivity_3d':
         await triggerNotification(
-          "Business Inactivity Reminder",
-          "Your business records have not been updated recently.",
+          "👋 We miss you!",
+          "It's been a few days since your last update. Check back in to keep your records up to date.",
           "inactivity",
           true
         );
         break;
       case 'inactivity_7d':
         await triggerNotification(
-          "Business Inactivity Reminder",
-          "Review your inventory, invoices and customer records.",
+          "💡 Business Tip",
+          "A quick review of your inventory and invoices can help you stay on top of your business.",
           "inactivity",
           true
         );
         break;
       case 'inactivity_15d':
         await triggerNotification(
-          "Business Inactivity Reminder",
-          "Your business performance report is waiting for review.",
+          "🔍 Need a quick check-in?",
+          "Your business performance report is ready. Take a moment to review your progress.",
           "inactivity",
           true
         );
         break;
       case 'inactivity_30d':
         await triggerNotification(
-          "Business Inactivity Reminder",
-          "Important reminder: Review inventory levels, pending dues and sales records.",
+          "⚡ Keep your momentum!",
+          "It's important to keep your inventory, pending dues, and sales records up to date. Let's get back on track!",
           "inactivity",
           true
         );
         break;
       case 'inventoryReview_7d':
         await triggerNotification(
-          "Inventory Review Recommended",
-          "Inventory review recommended. Some products may require stock verification.",
+          "📦 Inventory Checkup",
+          "It's a good time for a quick inventory review. Ensure your stock levels are accurate.",
           "inventoryReview",
           true
         );
         break;
       case 'security':
         await triggerNotification(
-          "Security Alert", 
-          "New login detected on your Smart Vyapar account.",
+          "🔒 Login Successful", 
+          "Welcome to Smart Vyapar! We've verified a new login for your account. Enjoy your seamless billing experience!",
           "security",
           true
         );
@@ -793,7 +793,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         const stockVal = Number(item.stock ?? 0);
         const isOut = stockVal <= 0;
-        const expectedTitle = isOut ? "Out of Stock Alert" : "Low Stock Alert";
+        const expectedTitle = isOut ? "🚨 Inventory Empty" : "📉 Low Stock Alert";
         
         // Double check if we already have an active unread stock alert of THIS Specific severity for this identical product name
         // This prevents redundant/spam notifications, and avoids showing both at once.
@@ -812,8 +812,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             triggerNotification(
               expectedTitle, 
               isOut
-                ? `Critical Warning: Product "${item.name}" is completely out of stock!`
-                : `Stock Alert: Product "${item.name}" is running low with only ${stockVal} ${item.unit || 'units'} remaining in inventory.`, 
+                ? `Attention needed: "${item.name}" is completely out of stock. Time to restock!`
+                : `Heads up! You're running low on "${item.name}" (Only ${stockVal} ${item.unit || 'units'} left).`, 
               "lowStock"
             );
             alertsTriggered++;
@@ -869,7 +869,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (alertsTriggered >= 2) break; // anti-spam brake limit: max 2 dues alerts at once
 
         const balance = Number(bill.balanceAmount ?? 0);
-        const expectedTitle = bill.paymentStatus === 'OVERDUE' ? "Overdue Payment Warning" : "Pending Due Alert";
+        const expectedTitle = bill.paymentStatus === 'OVERDUE' ? "⚠️ Payment Overdue" : "⏳ Payment Pending";
         
         // Double check if we already have an active unread due alert of THIS specific severity for this bill
         const alreadyNotified = notifications.some(
@@ -886,7 +886,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             
             triggerNotification(
               expectedTitle, 
-              `Collection Reminder: Customer "${bill.customerDetails.name}" has an outstanding balance of ₹${balance.toLocaleString('en-IN')} for Invoice #${bill.invoiceNumber}.`,
+              `Action required: You have an outstanding balance of ₹${balance.toLocaleString('en-IN')} from "${bill.customerDetails.name}" for Invoice #${bill.invoiceNumber}.`,
               "duePayment"
             );
             alertsTriggered++;
@@ -900,11 +900,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (user && sessionStorage.getItem('active_login_action_taken') === 'true') {
       sessionStorage.removeItem('active_login_action_taken');
-      triggerNotification(
-        "Security Alert", 
-        `Successful account authorization detected for user "${user.email || 'Admin'}".`, 
-        "security"
-      );
+      
+      const deviceKey = `known_device_${user.uid}`;
+      const isKnownDevice = localStorage.getItem(deviceKey);
+      
+      if (!isKnownDevice) {
+        localStorage.setItem(deviceKey, 'true');
+        triggerNotification(
+          "🔒 Login Successful", 
+          `Welcome to Smart Vyapar! We've verified a new login for ${user.email || 'Admin'}. Enjoy your seamless billing experience!`, 
+          "security"
+        );
+      }
     }
   }, [user, triggerNotification]);
 
@@ -929,8 +936,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             if (metrics && metrics.totalInvoices > 0) {
               localStorage.setItem(key, 'true');
               triggerNotification(
-                "Today's Business Summary", 
-                `Today's Digest: Sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} across ${metrics.totalInvoices} invoices generated today, yielding an estimated net profit of ₹${metrics.totalProfit.toLocaleString('en-IN')}.`,
+                "📊 Daily Snapshot", 
+                `Great day! You generated ${metrics.totalInvoices} invoices today, bringing in ₹${metrics.totalRevenue.toLocaleString('en-IN')} with an estimated profit of ₹${metrics.totalProfit.toLocaleString('en-IN')}.`,
                 "dailySummary"
               );
             }
@@ -965,8 +972,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             if (metrics && metrics.totalInvoices > 0) {
               localStorage.setItem(key, 'true');
               triggerNotification(
-                "Weekly Business Report", 
-                `Your 7-day macro performance report is ready: Total sales of ₹${metrics.totalRevenue.toLocaleString('en-IN')} with profit margin at ${metrics.profitMargin.toFixed(1)}%. Click to explore trends!`,
+                "📈 Weekly Performance Insights", 
+                `Incredible week! You processed ${metrics.totalInvoices} invoices for a total revenue of ₹${metrics.totalRevenue.toLocaleString('en-IN')} (Estimated profit: ₹${metrics.totalProfit.toLocaleString('en-IN')}). Keep the momentum going!`,
                 "weeklySummary"
               );
             }
@@ -995,8 +1002,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             if (metrics && metrics.totalInvoices > 0) {
               localStorage.setItem(key, 'true');
               triggerNotification(
-                "Monthly Business Summary Ready", 
-                `Monthly Performance Review: Total sales reached ₹${metrics.totalRevenue.toLocaleString('en-IN')} with an average bill size of ₹${Math.round(metrics.averageBillValue).toLocaleString('en-IN')}. Keep it up!`,
+                "🏆 Monthly Milestone Reached", 
+                `Outstanding month! You achieved a total revenue of ₹${metrics.totalRevenue.toLocaleString('en-IN')} across ${metrics.totalInvoices} invoices (Estimated profit: ₹${metrics.totalProfit.toLocaleString('en-IN')}). Fantastic work!`,
                 "monthlySummary"
               );
             }

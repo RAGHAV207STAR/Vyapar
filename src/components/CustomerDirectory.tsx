@@ -24,6 +24,15 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useBilling } from '../context/BillingContext';
 import { Customer, CustomerDetails } from '../types';
+import { 
+  formatOwnerName, 
+  formatMobileNumber, 
+  validateMobileNumber, 
+  formatAddress, 
+  formatGSTNumber, 
+  validateGSTNumber, 
+  handleEnterToNext 
+} from '../utils/validation';
 
 interface CustomerDirectoryProps {
   onCreateInvoice: (customer: CustomerDetails) => void;
@@ -99,6 +108,18 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
     };
   }, [customers, bills]);
 
+  // Count per filters
+  const filterCounts = React.useMemo(() => {
+    let dues = 0;
+    let settled = 0;
+    customers.forEach(c => {
+      const stats = getCustomerStats(c);
+      if (stats.totalDue > 0) dues++;
+      else if (stats.totalBillsCount > 0) settled++;
+    });
+    return { dues, settled };
+  }, [customers, bills]);
+
   // Filter and Search Customers List
   const filteredCustomers = React.useMemo(() => {
     return customers.filter(c => {
@@ -119,6 +140,32 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
       return matchesSearch;
     });
   }, [customers, bills, searchTerm, filterType]);
+
+  // Helper to generate initials & avatar background color dynamically
+  const getAvatarStyle = (name: string) => {
+    const initials = name
+      .split(' ')
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || '?';
+    
+    // Consistent color based on name hash
+    const colors = [
+      'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+      'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      'bg-amber-500/10 text-amber-600 border-amber-500/20',
+      'bg-rose-500/10 text-rose-600 border-rose-500/20',
+      'bg-sky-500/10 text-sky-600 border-sky-500/20',
+      'bg-violet-500/10 text-violet-600 border-violet-500/20',
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return { initials, colorClass: colors[index] };
+  };
 
   // Handle Edit Trigger
   const handleEditClick = (customer: Customer) => {
@@ -151,22 +198,38 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
       errors.name = "Customer name is required";
     }
 
-    if (formPhone.trim()) {
+    if (!formPhone.trim()) {
+      errors.phone = "Genuine mobile number is required";
+    } else {
       const cleanPhone = formPhone.replace(/\D/g, '');
-      if (cleanPhone.length < 10 || cleanPhone.length > 12) {
-        errors.phone = "Invalid phone number (must be 10-12 digits)";
+      if (cleanPhone.length !== 10) {
+        errors.phone = "Must be a genuine 10-digit mobile number";
+      } else if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        errors.phone = "Invalid format: Must start with 6-9 (genuine Indian mobile)";
       }
     }
 
     if (formGst.trim()) {
-      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstRegex.test(formGst.toUpperCase().trim())) {
+      if (!validateGSTNumber(formGst)) {
         errors.gstNumber = "Invalid GSTIN format (e.g. 07AAAAA1111A1Z1)";
       }
     }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      return;
+    }
+
+    // Check for exact duplicate (name, phone, address)
+    const isDuplicate = customers.some(c => 
+      c.name.trim().toLowerCase() === formName.trim().toLowerCase() &&
+      c.phone.trim() === formPhone.trim() &&
+      c.address.trim().toLowerCase() === formAddress.trim().toLowerCase() &&
+      (!editingCustomer || c.id !== editingCustomer.id)
+    );
+
+    if (isDuplicate) {
+      showToast("This customer already added with the same name, mobile number, and address.", "error");
       return;
     }
 
@@ -213,167 +276,187 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
   };
 
   return (
-    <div className="p-4 sm:p-6 w-full space-y-6">
-      {/* Header and Controls */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center">
-            <Users id="customers_icon" className="w-6 h-6 text-indigo-600 mr-2" />
-            Customers
-          </h1>
+    <div className="p-2 md:p-4 max-w-full w-full space-y-6">
+      {/* Premium Header Container */}
+      <div className="bg-gradient-to-br from-indigo-50 via-white to-sky-50 text-slate-900 rounded-[2rem] p-6 sm:p-8 relative overflow-hidden shadow-xl shadow-indigo-100/30 text-left border border-indigo-100/60">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-12 w-80 h-80 bg-sky-500/[0.04] rounded-full blur-[60px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-100/80 border border-indigo-200/50 rounded-full text-indigo-600 text-[10px] font-black uppercase tracking-widest">
+              <Users className="w-3.5 h-3.5" />
+              Directory Manager
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-1.5 text-slate-900">
+              Customer Directory
+            </h1>
+          </div>
+
+          <button
+            id="btn_add_customer"
+            onClick={handleAddNewClick}
+            className="self-start md:self-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 transition-all text-white text-xs font-black shadow-[0_4px_20px_0_rgba(79,70,229,0.3)] hover:shadow-[0_6px_25px_0_rgba(79,70,229,0.4)] rounded-2xl uppercase tracking-widest cursor-pointer group active:scale-98 border border-indigo-400/20"
+          >
+            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+            <span>Add New Customer</span>
+          </button>
         </div>
-        <button
-          id="btn_add_customer"
-          onClick={handleAddNewClick}
-          className="flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 hover:shadow-indigo-200 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Add New Customer
-        </button>
       </div>
 
-      {/* Stats Cards Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Overview Metric Cards (Grid of 4) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {/* Total Customers */}
-        <div id="stat_total_customers" className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Saved Directory</span>
-            <h3 className="text-lg font-extrabold text-slate-800 mt-0.5">{directoryStats.totalCustomers}</h3>
-            <span className="text-[10px] font-medium text-slate-500">Registered customers</span>
+        <div id="stat_total_customers" className="bg-white border border-slate-100 hover:border-slate-200/80 p-5 rounded-[2rem] transition-all duration-300 hover:shadow-xl hover:shadow-slate-100/40 hover:-translate-y-0.5 group flex items-center justify-between">
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Saved Directory</span>
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{directoryStats.totalCustomers}</h3>
+            <span className="text-[10px] font-semibold text-slate-500 block">Registered profiles</span>
           </div>
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold">
-            <Users className="w-5 h-5" />
+          <div className="w-12 h-12 bg-indigo-550/[0.08] text-indigo-600 border border-indigo-500/20 rounded-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition-all">
+            <Users className="w-5 h-5 font-bold" />
           </div>
         </div>
 
         {/* Active Billing */}
-        <div id="stat_active_billing" className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Active Clients</span>
-            <h3 className="text-lg font-extrabold text-slate-800 mt-0.5">{directoryStats.activeCustomers}</h3>
-            <span className="text-[10px] font-medium text-indigo-600">Generated invoices</span>
+        <div id="stat_active_billing" className="bg-white border border-slate-100 hover:border-slate-200/80 p-5 rounded-[2rem] transition-all duration-300 hover:shadow-xl hover:shadow-slate-100/40 hover:-translate-y-0.5 group flex items-center justify-between">
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Active Clients</span>
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{directoryStats.activeCustomers}</h3>
+            <span className="text-[10px] font-semibold text-indigo-600 block">With generated invoices</span>
           </div>
-          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-5 h-5" />
+          <div className="w-12 h-12 bg-emerald-500/[0.08] text-emerald-600 border border-emerald-500/20 rounded-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition-all">
+            <TrendingUp className="w-5 h-5 font-bold" />
           </div>
         </div>
 
         {/* Total Receivables */}
-        <div id="stat_total_receivables" className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-red-500/80 tracking-wider uppercase">Total Accounts Receivable</span>
-            <h3 className="text-lg font-extrabold text-red-600 mt-0.5">₹{directoryStats.totalDues.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <span className="text-[10px] font-medium text-slate-500">Live outstanding balance</span>
+        <div id="stat_total_receivables" className="bg-white border border-slate-100 hover:border-slate-200/80 p-5 rounded-[2rem] transition-all duration-300 hover:shadow-xl hover:shadow-slate-100/40 hover:-translate-y-0.5 group flex items-center justify-between">
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest block">Outstanding Receivable</span>
+            <h3 className="text-2xl font-black text-rose-600 tracking-tight truncate">₹{directoryStats.totalDues.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
+            <span className="text-[10px] font-semibold text-slate-500 block">Live dues balance</span>
           </div>
-          <div className="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center">
-            <CreditCard className="w-5 h-5" />
+          <div className="w-12 h-12 bg-rose-500/[0.08] text-rose-600 border border-rose-500/20 rounded-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition-all">
+            <CreditCard className="w-5 h-5 font-bold" />
           </div>
         </div>
 
-        {/* Total Sales */}
-        <div id="stat_total_sales" className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Cumulative Revenue</span>
-            <h3 className="text-lg font-extrabold text-indigo-950 mt-0.5">₹{directoryStats.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-            <span className="text-[10px] font-medium text-slate-500">Aggregate customer sales</span>
+        {/* Cumulative Revenue */}
+        <div id="stat_total_sales" className="bg-white border border-slate-100 hover:border-slate-200/80 p-5 rounded-[2rem] transition-all duration-300 hover:shadow-xl hover:shadow-slate-100/40 hover:-translate-y-0.5 group flex items-center justify-between">
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Cumulative Revenue</span>
+            <h3 className="text-2xl font-black text-slate-850 tracking-tight truncate">₹{directoryStats.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
+            <span className="text-[10px] font-semibold text-slate-500 block">Aggregate sales</span>
           </div>
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-            <Receipt className="w-5 h-5" />
+          <div className="w-12 h-12 bg-indigo-550/[0.08] text-indigo-600 border border-indigo-500/20 rounded-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition-all">
+            <Receipt className="w-5 h-5 font-bold" />
           </div>
         </div>
       </div>
 
-      {/* Search & Filtering Area */}
-      <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {/* Advanced Filter, Sorting & Search Engine */}
+      <div className="bg-white border border-slate-100 p-4 sm:p-5 rounded-[2rem] shadow-xs flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 w-full">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-4 top-3.5 h-4.5 w-4.5 text-slate-400" />
           <input
             id="customer_search_input"
             type="text"
-            placeholder="Search saved customers by name, phone, address, or GSTIN..."
+            placeholder="Search saved customers by name, phone, billing address, or GSTIN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50"
+            className="w-full pl-11 pr-12 py-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-slate-800 placeholder:text-slate-400"
           />
           {searchTerm && (
             <button 
               onClick={() => setSearchTerm('')} 
-              className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+              className="absolute right-4 top-3.5 text-xs font-black text-slate-400 hover:text-slate-650 px-1.5 py-0.5 bg-slate-200/50 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
             >
               Clear
             </button>
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-1.5 shrink-0">
+        {/* Filter Tab-Pills */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             id="filter_cust_all"
             onClick={() => setFilterType('all')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black tracking-wider uppercase transition-all duration-250 flex items-center gap-2 cursor-pointer border ${
               filterType === 'all' 
-                ? 'bg-slate-900 text-white shadow-sm' 
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                ? 'bg-slate-900 border-slate-950 text-white shadow-md shadow-slate-900/10' 
+                : 'bg-slate-50/60 border-slate-100 hover:bg-slate-100 hover:border-slate-200 text-slate-600'
             }`}
           >
-            All Customers
+            All Contacts
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-500'}`}>
+              {customers.length}
+            </span>
           </button>
           <button
             id="filter_cust_dues"
             onClick={() => setFilterType('with-dues')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black tracking-wider uppercase transition-all duration-250 flex items-center gap-2 cursor-pointer border ${
               filterType === 'with-dues' 
-                ? 'bg-red-600 text-white shadow-sm' 
-                : 'bg-red-50 hover:bg-red-100/80 text-red-600'
+                ? 'bg-rose-600 border-rose-650 text-white shadow-md shadow-rose-650/15' 
+                : 'bg-rose-500/[0.05] border-rose-100 hover:bg-rose-50 hover:border-rose-200 text-rose-600'
             }`}
           >
-            With Outstanding Dues
+            With Dues
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${filterType === 'with-dues' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
+              {filterCounts.dues}
+            </span>
           </button>
           <button
             id="filter_cust_settled"
             onClick={() => setFilterType('settled')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black tracking-wider uppercase transition-all duration-250 flex items-center gap-2 cursor-pointer border ${
               filterType === 'settled' 
-                ? 'bg-emerald-600 text-white shadow-sm' 
-                : 'bg-emerald-50 hover:bg-emerald-100/80 text-emerald-600'
+                ? 'bg-emerald-600 border-emerald-650 text-white shadow-md shadow-emerald-650/15' 
+                : 'bg-emerald-500/[0.05] border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 text-emerald-600'
             }`}
           >
             Fully Settled
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${filterType === 'settled' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'}`}>
+              {filterCounts.settled}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Customers List / Grid */}
+      {/* Directory Grid with full width */}
       <AnimatePresence mode="popLayout">
         {filteredCustomers.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white border border-dashed border-slate-200/80 p-12 text-center rounded-2xl flex flex-col items-center justify-center"
+            className="bg-white border border-dashed border-slate-200/80 p-16 text-center rounded-[2.5rem] flex flex-col items-center justify-center"
           >
-            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 mb-3">
-              <Users className="w-6 h-6" />
+            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-100">
+              <Users className="w-7 h-7 stroke-[1.5]" />
             </div>
-            <h3 className="text-xs font-bold text-slate-700">No Customers Found</h3>
-            <p className="text-[10px] text-slate-400 mt-1 max-w-sm">
+            <h3 className="text-sm font-bold text-slate-700">No Customers Match Filter</h3>
+            <p className="text-slate-400 text-xs mt-1.5 max-w-md leading-relaxed">
               {searchTerm 
-                ? "We couldn't find any customers matching your search criteria. Try clarifying your input." 
-                : "No saved customers yet! Customers are automatically saved here when you create bills, or you can add them manually."}
+                ? "We couldn't locate any directory profiles matching your current search query. Try clearing the search input." 
+                : "No saved customers found under this category yet! Keep creating invoices, or add your accounts manually above."}
             </p>
             {!searchTerm && (
               <button
                 onClick={handleAddNewClick}
-                className="mt-4 bg-indigo-50 hover:bg-indigo-100/80 transition-colors text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-bold"
+                className="mt-5 bg-indigo-50 hover:bg-indigo-100 transition-all text-indigo-650 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer border border-indigo-100"
               >
                 Add Customer Profile Manually
               </button>
             )}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 w-full">
             {filteredCustomers.map((cust) => {
               const stats = getCustomerStats(cust);
+              const avatar = getAvatarStyle(cust.name);
+
               return (
                 <motion.div
                   key={cust.id}
@@ -382,85 +465,98 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex flex-col justify-between hover:border-slate-200 transition-all group"
+                  className="bg-white border border-slate-100 rounded-3xl shadow-sm hover:shadow-xl hover:shadow-slate-100/50 hover:border-slate-200/80 transition-all duration-300 p-5 flex flex-col justify-between group relative overflow-hidden"
                 >
                   <div>
-                    {/* Header: Name and Status */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-slate-800 truncate leading-tight group-hover:text-indigo-600 transition-colors">
-                          {cust.name}
-                        </h4>
-                        {cust.phone ? (
-                          <a 
-                            href={`tel:${cust.phone}`}
-                            className="text-[10px] font-medium text-slate-500 flex items-center mt-1 hover:text-indigo-600 transition-colors"
-                          >
-                            <Phone className="w-3 h-3 mr-1" />
-                            {cust.phone}
-                          </a>
+                    {/* Header Info */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Custom Initial Avatar */}
+                        <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-black text-xs shrink-0 ${avatar.colorClass}`}>
+                          {avatar.initials}
+                        </div>
+                        <div className="min-w-0 text-left">
+                          <h4 className="text-xs font-black text-slate-800 truncate leading-tight group-hover:text-indigo-600 transition-colors">
+                            {cust.name}
+                          </h4>
+                          {cust.phone ? (
+                            <a 
+                              href={`tel:${cust.phone}`}
+                              className="text-[10px] font-bold text-slate-400 flex items-center mt-1 hover:text-indigo-600 transition-colors"
+                            >
+                              <Phone className="w-3 h-3 mr-1 text-slate-400 shrink-0" />
+                              {cust.phone}
+                            </a>
+                          ) : (
+                            <span className="text-[9.5px] font-semibold text-slate-450 mt-1 block">
+                              No contact details
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Dynamic Payment State Badge */}
+                      <div className="shrink-0">
+                        {stats.totalBillsCount === 0 ? (
+                          <span className="text-[9px] font-bold bg-slate-50 text-slate-500 border border-slate-200/40 px-2.5 py-1 rounded-full uppercase tracking-wider block">
+                            No Invoices
+                          </span>
+                        ) : stats.totalDue > 0 ? (
+                          <span className="text-[9px] font-bold bg-rose-500/[0.07] text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5 shrink-0" />
+                            Due
+                          </span>
                         ) : (
-                          <span className="text-[10px] font-medium text-slate-400 mt-1 block">
-                            No contact details
+                          <span className="text-[9px] font-bold bg-emerald-500/[0.07] text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                            <CheckCircle className="w-2.5 h-2.5 shrink-0" />
+                            Settled
                           </span>
                         )}
                       </div>
+                    </div>
 
-                      {/* Status indicator badge (dynamic dues) */}
-                      {stats.totalBillsCount === 0 ? (
-                        <span className="text-[9px] font-bold bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full shrink-0">
-                          No Bills
-                        </span>
-                      ) : stats.totalDue > 0 ? (
-                        <span className="text-[9px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          ₹{stats.totalDue.toLocaleString('en-IN', { maximumFractionDigits: 0 })} Due
-                        </span>
+                    {/* Compact Details Bento Bar */}
+                    <div className="mt-4 space-y-1.5 border-t border-slate-50 pt-3 text-left">
+                      {cust.address ? (
+                        <div className="flex items-start text-slate-500 text-[10px] bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 p-2.5 rounded-2xl transition-colors min-h-12">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2 leading-relaxed font-semibold text-slate-650">{cust.address}</span>
+                        </div>
                       ) : (
-                        <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                          <CheckCircle className="w-2.5 h-2.5" />
-                          Settled
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Address & GSTIN */}
-                    <div className="mt-3.5 space-y-1.5 border-t border-slate-50 pt-3 text-[10px]">
-                      {cust.address && (
-                        <div className="flex items-start text-slate-500">
-                          <MapPin className="w-3 h-3 text-slate-400 mr-1.5 shrink-0 mt-0.5" />
-                          <span className="truncate-2-lines leading-relaxed">{cust.address}</span>
+                        <div className="border border-dashed border-slate-200 rounded-2xl py-3 px-2 text-center text-[9px] text-slate-400 font-semibold uppercase tracking-wider">
+                          No Address Added
                         </div>
                       )}
+
                       {cust.gstNumber && (
-                        <div className="flex items-center text-slate-600 font-semibold bg-indigo-50/40 border border-indigo-100/30 px-2 py-1 rounded-lg w-max max-w-full">
-                          <Building className="w-3 h-3 text-indigo-500 mr-1.5 shrink-0" />
-                          <span className="uppercase text-[9px]">GSTIN: {cust.gstNumber}</span>
+                        <div className="flex items-center text-indigo-700 font-bold bg-indigo-50/50 border border-indigo-100/50 px-3 py-1.5 rounded-2xl w-max max-w-full">
+                          <Building className="w-3.5 h-3.5 text-indigo-500 mr-2 shrink-0" />
+                          <span className="uppercase text-[9px] tracking-wide font-mono">GSTIN: {cust.gstNumber}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Dynamic Financial Overview */}
-                    <div className="bg-slate-50/70 rounded-xl p-3 mt-4 grid grid-cols-3 gap-1.5 text-center">
-                      <div>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Bills</span>
-                        <span className="text-xs font-bold text-slate-700 mt-0.5 block">{stats.totalBillsCount}</span>
+                    {/* High-fidelity Bento Financial Box */}
+                    <div className="bg-slate-50/80 hover:bg-slate-50 border border-slate-100/80 rounded-[1.5rem] p-3 mt-4 grid grid-cols-3 gap-1.5 text-center transition-colors">
+                      <div className="space-y-0.5">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Invoices</span>
+                        <span className="text-xs font-black text-slate-750 block">{stats.totalBillsCount}</span>
                       </div>
-                      <div>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Total Sales</span>
-                        <span className="text-xs font-extrabold text-slate-800 mt-0.5 block">₹{stats.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                      <div className="space-y-0.5 border-x border-slate-200/50">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Cumulative</span>
+                        <span className="text-xs font-black text-slate-800 block">₹{stats.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                       </div>
-                      <div>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Outstanding</span>
-                        <span className={`text-xs font-extrabold mt-0.5 block ${stats.totalDue > 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                      <div className="space-y-0.5">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Receivables</span>
+                        <span className={`text-xs font-black block ${stats.totalDue > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
                           ₹{stats.totalDue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 mt-4 pt-3.5 border-t border-slate-50 shrink-0">
+                  {/* Dynamic Action Controls */}
+                  <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-50 shrink-0">
                     <button
                       onClick={() => onCreateInvoice({
                         name: cust.name,
@@ -468,22 +564,22 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
                         address: cust.address || '',
                         gstNumber: cust.gstNumber
                       })}
-                      className="flex-1 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 py-1.5 px-3 rounded-xl text-[10px] font-bold transition-colors cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 py-2 px-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border border-indigo-100/30"
                     >
-                      <Receipt className="w-3.5 h-3.5 mr-1" />
-                      Create Invoice
+                      <Receipt className="w-3.5 h-3.5" />
+                      Invoice
                     </button>
                     <button
                       onClick={() => handleEditClick(cust)}
-                      title="Edit Customer"
-                      className="p-1.5 border border-slate-200/60 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-xl transition-colors cursor-pointer"
+                      title="Edit Profile"
+                      className="p-2 border border-slate-200/70 hover:bg-slate-50 text-slate-500 hover:text-slate-700 rounded-2xl transition-all cursor-pointer shadow-3xs hover:-translate-y-0.5"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(cust)}
-                      title="Delete Customer"
-                      className="p-1.5 border border-slate-200/60 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl transition-colors cursor-pointer"
+                      title="Delete Profile"
+                      className="p-2 border border-slate-200/70 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-2xl transition-all cursor-pointer shadow-3xs hover:-translate-y-0.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -495,143 +591,188 @@ export default function CustomerDirectory({ onCreateInvoice }: CustomerDirectory
         )}
       </AnimatePresence>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modal (Glassmorphic Backdrop & Slick Transitions) */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-slate-100 max-w-md w-full shadow-xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-white rounded-[2rem] border border-slate-100 max-w-md w-full shadow-2xl overflow-hidden text-left"
             >
               {/* Modal Header */}
-              <div className="bg-indigo-950 px-5 py-4 flex items-center justify-between text-white">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-300">
-                    {editingCustomer ? "Update Profile" : "Register Profile"}
-                  </h3>
-                  <h2 className="text-sm font-bold text-white mt-0.5">
-                    {editingCustomer ? `Edit Customer: ${editingCustomer.name}` : "Add New Customer Contact"}
-                  </h2>
+              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-5 flex items-center justify-between text-white relative border-b border-indigo-500/20">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_45%)] pointer-events-none" />
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 p-2.5 rounded-2xl shrink-0 shadow-lg shadow-indigo-500/5">
+                    {editingCustomer ? <Pencil className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-indigo-400/90 block">
+                      {editingCustomer ? "Update Directory Profile" : "New Customer Register"}
+                    </span>
+                    <h2 className="text-base font-extrabold text-white mt-0.5 leading-tight">
+                      {editingCustomer ? `Edit Profile` : "Create Customer Account"}
+                    </h2>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="text-indigo-200 hover:text-white transition-colors cursor-pointer p-1"
+                  className="text-slate-400 hover:text-white transition-all duration-200 cursor-pointer p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-xl hover:scale-105 active:scale-95 shadow-md shadow-black/10"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Modal Body / Form */}
-              <form onSubmit={handleSave} className="p-5 space-y-4">
+              {/* Modal Form */}
+              <form onSubmit={handleSave} className="p-6 space-y-5 bg-white">
                 {/* Name */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Customer / Business Name <span className="text-red-500">*</span>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <Users className="w-3 h-3 text-slate-400" />
+                    Customer / Business Name <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => {
-                      setFormName(e.target.value);
-                      if (formErrors.name) {
-                        setFormErrors(prev => ({ ...prev, name: '' }));
-                      }
-                    }}
-                    placeholder="Enter customer or corporate name"
-                    className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 ${
-                      formErrors.name 
-                        ? 'border-red-300 focus:ring-red-500/20' 
-                        : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'
-                    }`}
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Users className="w-4 h-4 opacity-70" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formName}
+                      onChange={(e) => {
+                        setFormName(formatOwnerName(e.target.value));
+                        if (formErrors.name) {
+                          setFormErrors(prev => ({ ...prev, name: '' }));
+                        }
+                      }}
+                      onKeyDown={handleEnterToNext}
+                      placeholder="Enter complete customer or company name"
+                      className={`w-full pl-10 pr-4 py-3 bg-slate-50/75 border rounded-2xl text-xs font-semibold focus:outline-none focus:ring-4 transition-all focus:bg-white ${
+                        formErrors.name 
+                          ? 'border-rose-350 focus:ring-rose-500/10 focus:border-rose-400' 
+                          : 'border-slate-200 focus:ring-indigo-500/10 focus:border-indigo-600'
+                      }`}
+                    />
+                  </div>
                   {formErrors.name && (
-                    <span className="text-[9px] font-semibold text-red-500 mt-1 block">{formErrors.name}</span>
+                    <span className="text-[10px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {formErrors.name}
+                    </span>
                   )}
                 </div>
 
                 {/* Phone */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Mobile Number (WhatsApp/Call)
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <Phone className="w-3 h-3 text-slate-400" />
+                    Mobile Number (WhatsApp/Call) <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="tel"
-                    value={formPhone}
-                    onChange={(e) => {
-                      setFormPhone(e.target.value);
-                      if (formErrors.phone) {
-                        setFormErrors(prev => ({ ...prev, phone: '' }));
-                      }
-                    }}
-                    placeholder="e.g. 9876543210"
-                    className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 ${
-                      formErrors.phone 
-                        ? 'border-red-300 focus:ring-red-500/20' 
-                        : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'
-                    }`}
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Phone className="w-4 h-4 opacity-70" />
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={formPhone}
+                      onChange={(e) => {
+                        setFormPhone(formatMobileNumber(e.target.value));
+                        if (formErrors.phone) {
+                          setFormErrors(prev => ({ ...prev, phone: '' }));
+                        }
+                      }}
+                      onKeyDown={handleEnterToNext}
+                      placeholder="e.g. 9876543210 (10 digits)"
+                      className={`w-full pl-10 pr-4 py-3 bg-slate-50/75 border rounded-2xl text-xs font-semibold focus:outline-none focus:ring-4 transition-all focus:bg-white ${
+                        formErrors.phone 
+                          ? 'border-rose-350 focus:ring-rose-500/10 focus:border-rose-400' 
+                          : 'border-slate-200 focus:ring-indigo-500/10 focus:border-indigo-600'
+                      }`}
+                    />
+                  </div>
                   {formErrors.phone && (
-                    <span className="text-[9px] font-semibold text-red-500 mt-1 block">{formErrors.phone}</span>
+                    <span className="text-[10px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {formErrors.phone}
+                    </span>
                   )}
                 </div>
 
                 {/* Address */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Billing/Shipping Address
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <MapPin className="w-3 h-3 text-slate-400" />
+                    Billing / Shipping Address
                   </label>
-                  <textarea
-                    rows={2}
-                    value={formAddress}
-                    onChange={(e) => setFormAddress(e.target.value)}
-                    placeholder="Enter complete customer physical address"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
+                  <div className="relative">
+                    <div className="absolute top-3 left-3.5 pointer-events-none text-slate-400">
+                      <MapPin className="w-4 h-4 opacity-70" />
+                    </div>
+                    <textarea
+                      rows={2.5}
+                      value={formAddress}
+                      onChange={(e) => setFormAddress(formatAddress(e.target.value))}
+                      onKeyDown={handleEnterToNext}
+                      placeholder="Enter customer's complete billing/shipping address details"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50/75 border border-slate-200 focus:border-indigo-600 focus:bg-white rounded-2xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                    />
+                  </div>
                 </div>
 
                 {/* GSTIN */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    GSTIN / Corporate Tax ID
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <Receipt className="w-3 h-3 text-slate-400" />
+                    GSTIN / Corporate Tax ID (Optional)
                   </label>
-                  <input
-                    type="text"
-                    value={formGst}
-                    onChange={(e) => {
-                      setFormGst(e.target.value);
-                      if (formErrors.gstNumber) {
-                        setFormErrors(prev => ({ ...prev, gstNumber: '' }));
-                      }
-                    }}
-                    placeholder="e.g. 07AAAAA1111A1Z1"
-                    className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold uppercase focus:outline-none focus:ring-2 ${
-                      formErrors.gstNumber 
-                        ? 'border-red-300 focus:ring-red-500/20' 
-                        : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'
-                    }`}
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Receipt className="w-4 h-4 opacity-70" />
+                    </div>
+                    <input
+                      type="text"
+                      value={formGst}
+                      onChange={(e) => {
+                        setFormGst(formatGSTNumber(e.target.value));
+                        if (formErrors.gstNumber) {
+                          setFormErrors(prev => ({ ...prev, gstNumber: '' }));
+                        }
+                      }}
+                      onKeyDown={handleEnterToNext}
+                      placeholder="e.g. 07AAAAA1111A1Z1"
+                      className={`w-full pl-10 pr-4 py-3 bg-slate-50/75 border rounded-2xl text-xs font-semibold uppercase focus:outline-none focus:ring-4 transition-all focus:bg-white ${
+                        formErrors.gstNumber 
+                          ? 'border-rose-350 focus:ring-rose-500/10' 
+                          : 'border-slate-200 focus:ring-indigo-500/10 focus:border-indigo-600'
+                      }`}
+                    />
+                  </div>
                   {formErrors.gstNumber && (
-                    <span className="text-[9px] font-semibold text-red-500 mt-1 block">{formErrors.gstNumber}</span>
+                    <span className="text-[10px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {formErrors.gstNumber}
+                    </span>
                   )}
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex gap-2.5 pt-4 border-t border-slate-100">
+                <div className="flex gap-3 pt-5 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-2 border border-slate-200 hover:bg-slate-50 transition-colors text-slate-500 font-bold text-xs rounded-xl cursor-pointer"
+                    className="flex-1 py-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 transition-all text-slate-650 hover:text-slate-800 font-extrabold text-xs rounded-2xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer"
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-550 active:bg-indigo-700 transition-all text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-indigo-600/15 hover:shadow-indigo-600/25 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                   >
-                    {editingCustomer ? "Update Profile" : "Add Customer"}
+                    {editingCustomer ? "Update Profile" : "Create Account"}
                   </button>
                 </div>
               </form>

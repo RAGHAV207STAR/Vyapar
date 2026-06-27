@@ -11,6 +11,7 @@ if (typeof (Object as any).hasOwn !== 'function') {
 
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import './index.css';
 
@@ -33,6 +34,8 @@ console.error = (...args) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
   </StrictMode>,
 );

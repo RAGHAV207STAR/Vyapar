@@ -55,6 +55,8 @@ import { useNotification } from "./context/NotificationContext";
 import NotificationCenter from "./components/NotificationCenter";
 import ConflictReconciliationModal from "./components/ConflictReconciliationModal";
 import CommandMenu from "./components/CommandMenu";
+import SEO from "./components/SEO";
+import OfflineBlocker from "./components/OfflineBlocker";
 
 // Lazy load secondary feature-heavy dashboard modules
 import BillingSystem from "./components/BillingSystem";
@@ -402,232 +404,188 @@ function AppContent() {
   };
 
   // Dynamic GSC SEO Meta/Canonical Updater for indexers and social frames
-  useEffect(() => {
-    let title =
+  let seoTitle =
+    "Smart Vyapar – Premium GST Billing, Real-Time Inventory & Business Management Suite";
+  let seoDesc =
+    "Smart Vyapar is a state-of-the-art billing app and real-time stock books tracker. Easily create GST-compliant tax invoices, manage retail inventories across devices, view detailed profit analytics, and get instant digital payments with UPI QR codes.";
+  const seoKeywords =
+    "Smart Vyapar, Vyapar billing app, online billing software, retail shop billing app, GST invoice generator, stock tracker, stock management software, inventory books, business accounting software, mobile billing scanner, tax receipt maker, business ledger diary, small business ERP, inventory count sheets, GST bill maker software, best invoice app, offline store manager, online accounting book, free receipt templates, shop manager app, cash ledger register, digital ledger app, purchase book tracker, simple sales book, invoice payment QR, indian business billing, wholesale inventory manager, gst software for shopkeeper, grocery billing system, thermal receipt printing app, ledger entry book, stock ledger calculator, purchase order tracker, tax accounting application, dukan cash book, vyapar digital register, small store invoicing";
+
+  // 1. Is this a public metadata landing page request?
+  if (currentPath === "/" || currentPath === "") {
+    seoTitle =
       "Smart Vyapar – Premium GST Billing, Real-Time Inventory & Business Management Suite";
-    let desc =
+    seoDesc =
       "Smart Vyapar is a state-of-the-art billing app and real-time stock books tracker. Easily create GST-compliant tax invoices, manage retail inventories across devices, view detailed profit analytics, and get instant digital payments with UPI QR codes.";
-
-    // 1. Is this a public metadata landing page request?
-    if (currentPath === "/" || currentPath === "") {
-      title =
-        "Smart Vyapar – Premium GST Billing, Real-Time Inventory & Business Management Suite";
-      desc =
-        "Smart Vyapar is a state-of-the-art billing app and real-time stock books tracker. Easily create GST-compliant tax invoices, manage retail inventories across devices, view detailed profit analytics, and get instant digital payments with UPI QR codes.";
-    } else if (currentPath === "/features") {
-      title = "Inventory Management & Operations | Smart Vyapar";
-      desc =
-        "Discover the complete suite of dual-mode online/offline bookkeeping, custom invoice layouts, and robust stocking utilities offered by Smart Vyapar.";
-    } else if (currentPath === "/about") {
-      title = "About Us – Empowering Shop Owners | Smart Vyapar";
-      desc =
-        "Understand the design philosophy, team guidelines, and secure client-side backup strategies making Smart Vyapar the preferred tool for smart local merchants.";
-    } else if (currentPath === "/faq") {
-      title = "Frequently Asked Questions & Support | Smart Vyapar";
-      desc =
-        "Find clear, descriptive answers regarding cloud sync safety, PWA install mechanics, GST calculations, thermal printer layouts, and offline modes in Smart Vyapar.";
-    } else if (currentPath === "/contact") {
-      title = "Support & Sales Inquiry Gateway | Smart Vyapar";
-      desc =
-        "Draft secure messages, connect with technical engineering leads, or request specialized merchant features from Smart Vyapar.";
-    } else if (currentPath === "/privacy-policy") {
-      title = "Data Security & Storage Compliance | Smart Vyapar";
-      desc =
-        "Read about our local cache isolation and SSL backup rules ensuring your accounting sheets remain strictly private.";
-    } else if (currentPath === "/terms") {
-      title = "User Policies & Service Conditions | Smart Vyapar";
-      desc =
-        "Review user agreements, data recovery disclaimers, and local-first compliance standard terms.";
-    } else if (currentPath === "/billing-software") {
-      title = "Accounting & Shop Invoicing billing-software | Smart Vyapar";
-      desc =
-        "Accelerate sales and print thermal receipt coupons with the finest local billing software built for retailers.";
-    } else if (currentPath === "/inventory-management") {
-      title = "Warehouse Stock Tracking & Audits | Smart Vyapar";
-      desc =
-        "Track purchase prices, set minimum reorder levels, and audit item warehouse statuses in real-time.";
-    } else if (currentPath === "/invoice-generator") {
-      title = "Digital Tax & Custom Invoice Generator | Smart Vyapar";
-      desc =
-        "Customize layout formats, bind Google logos, and set tax levels cleanly with our automated invoice generator.";
-    } else if (currentPath === "/business-analytics") {
-      title = "Revenue Analytics & Sales Insights | Smart Vyapar";
-      desc =
-        "Review monthly profits, collect net GST outputs, and trace transaction loops with visual Recharts metrics.";
-    } else if (currentPath === "/login") {
-      title = "Secure Member Log In | Smart Vyapar Support";
-      desc =
-        "Log in to your Smart Vyapar merchant cloud profile to sync invoices, review store catalog assets, and manage daily bookkeeping records.";
-    } else if (currentPath === "/signup") {
-      title = "Register Store Account Portal | Smart Vyapar";
-      desc =
-        "Create a secure merchant workspace record in seconds. Activate dynamic offline-first templates, automatic stock deduction, and real-time ledger back-ups.";
-    } else if (currentPath === "/blog") {
-      title = "Small Business Billing Guide & Blog | Smart Vyapar";
-      desc =
-        "Discover deep operational guide posts, inventory cycle count checklists, and billing speed optimization formulas written by retail experts.";
-    } else if (currentPath === "/updates") {
-      title = "Product Changelog & Updates | Smart Vyapar";
-      desc =
-        "Track our roadmap, latest features, performance improvements, and local thermal printer optimization updates in real-time.";
-    } else if (currentPath === "/gst-support") {
-      title = "GST Support, Invoicing Compliance & Calculator | Smart Vyapar";
-      desc =
-        "Learn CGST, SGST, IGST rules, composition vs regular schemes, and use our interactive real-time tax calculator to audit your billing.";
-    } else if (currentPath.startsWith("/blog/")) {
-      const slug = currentPath.substring(6);
-      if (slug === "how-to-manage-inventory") {
-        title =
-          "How to Manage Inventory for Growing Retail Shops | Smart Vyapar";
-        desc =
-          "Discover the ultimate safety reorder buffer rates and inventory optimization formula to maximize store cash savings.";
-      } else if (slug === "how-to-create-professional-invoices") {
-        title = "How to Create Professional Invoices & Receipts | Smart Vyapar";
-        desc =
-          "Synthesize billing receipts with custom brand logos, sequential numbers, compliant GST levels, and scan-to-pay QR graphics.";
-      } else if (slug === "small-business-billing-guide") {
-        title = "Compliance and Billing Speed Guide | Smart Vyapar";
-        desc =
-          "Learn step-by-step compliant accounting configurations and digital receipt rules to safeguard cash registers.";
-      } else if (slug === "inventory-tracking-tips") {
-        title = "Top 5 Local Store Inventory Tracking Tips | Smart Vyapar";
-        desc =
-          "Deploy FIFO warehouse logistics, cycle counts, and item groups to speed up checkouts and shrink cash leakage.";
-      } else if (slug === "retail-business-management") {
-        title = "Neighborhood Retail Cloud Management Future | Smart Vyapar";
-        desc =
-          "Scale local boutique and grocery businesses by backing up accounting ledgers to encrypted Cloud vaults.";
-      } else {
-        title = "Merchant Blog Article | Smart Vyapar Software";
-        desc =
-          "Read our informative resources, design templates, and compliance guidelines for business managers.";
+  } else if (currentPath === "/features") {
+    seoTitle = "Inventory Management & Operations | Smart Vyapar";
+    seoDesc =
+      "Discover the complete suite of dual-mode online/offline bookkeeping, custom invoice layouts, and robust stocking utilities offered by Smart Vyapar.";
+  } else if (currentPath === "/about") {
+    seoTitle = "About Us – Empowering Shop Owners | Smart Vyapar";
+    seoDesc =
+      "Understand the design philosophy, team guidelines, and secure client-side backup strategies making Smart Vyapar the preferred tool for smart local merchants.";
+  } else if (currentPath === "/faq") {
+    seoTitle = "Frequently Asked Questions & Support | Smart Vyapar";
+    seoDesc =
+      "Find clear, descriptive answers regarding cloud sync safety, PWA install mechanics, GST calculations, thermal printer layouts, and offline modes in Smart Vyapar.";
+  } else if (currentPath === "/contact") {
+    seoTitle = "Support & Sales Inquiry Gateway | Smart Vyapar";
+    seoDesc =
+      "Draft secure messages, connect with technical engineering leads, or request specialized merchant features from Smart Vyapar.";
+  } else if (currentPath === "/privacy-policy") {
+    seoTitle = "Data Security & Storage Compliance | Smart Vyapar";
+    seoDesc =
+      "Read about our local cache isolation and SSL backup rules ensuring your accounting sheets remain strictly private.";
+  } else if (currentPath === "/terms") {
+    seoTitle = "User Policies & Service Conditions | Smart Vyapar";
+    seoDesc =
+      "Review user agreements, data recovery disclaimers, and local-first compliance standard terms.";
+  } else if (currentPath === "/billing-software") {
+    seoTitle = "Accounting & Shop Invoicing billing-software | Smart Vyapar";
+    seoDesc =
+      "Accelerate sales and print thermal receipt coupons with the finest local billing software built for retailers.";
+  } else if (currentPath === "/inventory-management") {
+    seoTitle = "Warehouse Stock Tracking & Audits | Smart Vyapar";
+    seoDesc =
+      "Track purchase prices, set minimum reorder levels, and audit item warehouse statuses in real-time.";
+  } else if (currentPath === "/invoice-generator") {
+    seoTitle = "Digital Tax & Custom Invoice Generator | Smart Vyapar";
+    seoDesc =
+      "Customize layout formats, bind Google logos, and set tax levels cleanly with our automated invoice generator.";
+  } else if (currentPath === "/business-analytics") {
+    seoTitle = "Revenue Analytics & Sales Insights | Smart Vyapar";
+    seoDesc =
+      "Review monthly profits, collect net GST outputs, and trace transaction loops with visual Recharts metrics.";
+  } else if (currentPath === "/login") {
+    seoTitle = "Secure Member Log In | Smart Vyapar Support";
+    seoDesc =
+      "Log in to your Smart Vyapar merchant cloud profile to sync invoices, review store catalog assets, and manage daily bookkeeping records.";
+  } else if (currentPath === "/signup") {
+    seoTitle = "Register Store Account Portal | Smart Vyapar";
+    seoDesc =
+      "Create a secure merchant workspace record in seconds. Activate dynamic offline-first templates, automatic stock deduction, and real-time ledger back-ups.";
+  } else if (currentPath === "/blog") {
+    seoTitle = "Small Business Billing Guide & Blog | Smart Vyapar";
+    seoDesc =
+      "Discover deep operational guide posts, inventory cycle count checklists, and billing speed optimization formulas written by retail experts.";
+  } else if (currentPath === "/updates") {
+    seoTitle = "Product Changelog & Updates | Smart Vyapar";
+    seoDesc =
+      "Track our roadmap, latest features, performance improvements, and local thermal printer optimization updates in real-time.";
+  } else if (currentPath === "/gst-support") {
+    seoTitle = "GST Support, Invoicing Compliance & Calculator | Smart Vyapar";
+    seoDesc =
+      "Learn CGST, SGST, IGST rules, composition vs regular schemes, and use our interactive real-time tax calculator to audit your billing.";
+  } else if (currentPath.startsWith("/blog/")) {
+    const slug = currentPath.substring(6);
+    if (slug === "how-to-manage-inventory") {
+      seoTitle =
+        "How to Manage Inventory for Growing Retail Shops | Smart Vyapar";
+      seoDesc =
+        "Discover the ultimate safety reorder buffer rates and inventory optimization formula to maximize store cash savings.";
+    } else if (slug === "how-to-create-professional-invoices") {
+      seoTitle = "How to Create Professional Invoices & Receipts | Smart Vyapar";
+      seoDesc =
+        "Synthesize billing receipts with custom brand logos, sequential numbers, compliant GST levels, and scan-to-pay QR graphics.";
+    } else if (slug === "small-business-billing-guide") {
+      seoTitle = "Compliance and Billing Speed Guide | Smart Vyapar";
+      seoDesc =
+        "Learn step-by-step compliant accounting configurations and digital receipt rules to safeguard cash registers.";
+    } else if (slug === "inventory-tracking-tips") {
+      seoTitle = "Top 5 Local Store Inventory Tracking Tips | Smart Vyapar";
+      seoDesc =
+        "Deploy FIFO warehouse logistics, cycle counts, and item groups to speed up checkouts and shrink cash leakage.";
+    } else if (slug === "retail-business-management") {
+      seoTitle = "Neighborhood Retail Cloud Management Future | Smart Vyapar";
+      seoDesc =
+        "Scale local boutique and grocery businesses by backing up accounting ledgers to encrypted Cloud vaults.";
+    } else {
+      seoTitle = "Merchant Blog Article | Smart Vyapar Software";
+      seoDesc =
+        "Read our informative resources, design templates, and compliance guidelines for business managers.";
+    }
+  }
+  // 2. Or is it a workspace deep-link metadata request?
+  else if (user && profile) {
+    if (previewBill) {
+      seoTitle = `Invoice #${previewBill.invoiceNumber || previewBill.billId} Detail | Smart Vyapar`;
+      seoDesc = `Detailed view of invoice number ${previewBill.invoiceNumber || previewBill.billId} generated for ${previewBill.customerDetails?.name || "Customer"} inside Smart Vyapar Workspace database.`;
+    } else {
+      switch (activeTab) {
+        case "Dashboard":
+          seoTitle = "Smart Vyapar Dashboard";
+          seoDesc =
+            "Merchant Home: Complete shop overview, real-time summaries, sales trend records, and critical stock level indicators.";
+          break;
+        case "Create Bill":
+          seoTitle = "Invoice Generator | Smart Vyapar";
+          seoDesc =
+            "Create and print beautiful customized professional tax receipts with UPI QR codes in under 3 seconds.";
+          break;
+        case "Bill History":
+          seoTitle = "Invoice History & Archives | Smart Vyapar";
+          seoDesc =
+            "Browse historical transaction collections, trace outstanding credit dues, and manage client bills.";
+          break;
+        case "Bill Payment Status":
+          seoTitle = "Bill Payment & UPI Status Tracker | Smart Vyapar";
+          seoDesc =
+            "Review active UPI payment transactions, trace GPay, PhonePe, and Paytm statuses, and reconcile pending credits in your digital khata ledger.";
+          break;
+        case "Inventory":
+          seoTitle = "Inventory Management | Smart Vyapar";
+          seoDesc =
+            "Track retail catalog entries, optimize reorder thresholds, and manage live stock levels.";
+          break;
+        case "AI Replenishment":
+          seoTitle = "AI Inventory Replenishment & Stock Predictor | Smart Vyapar";
+          seoDesc =
+            "Leverage high-precision demand forecasting algorithms to track daily velocity and generate smart safety stock buffer reorder triggers.";
+          break;
+        case "Purchase Orders":
+          seoTitle = "Purchase Order Generator & Supplier Workspaces | Smart Vyapar";
+          seoDesc =
+            "Generate professional purchase orders, coordinate directly with wholesale suppliers, and log incoming stock invoices with barcode integrations.";
+          break;
+        case "Analytics":
+          seoTitle = "Business Analytics | Smart Vyapar";
+          seoDesc =
+            "Visualize weekly profit margins, revenue charts, tax collection metrics, and top-volume lines.";
+          break;
+        case "Financial Center":
+          seoTitle = "Financial Center & Cash ledger Registers | Smart Vyapar";
+          seoDesc =
+            "Manage Cash Inflow, log outbound rental/operational expenses, review net income sheets, and monitor detailed GST balances dynamically.";
+          break;
+        case "Help Desk":
+          seoTitle = "Customer Support Portal & Help Desk | Smart Vyapar";
+          seoDesc =
+            "Contact Smart Vyapar engineering, access step-by-step billing hardware guides, and clear local storage synchronization conflicts.";
+          break;
+        case "Notifications":
+          seoTitle = "Alert System & System Logs | Smart Vyapar";
+          seoDesc =
+            "Track real-time stock shortages, low inventory ledger alerts, customer billing notifications, and data synchronizer events.";
+          break;
+        case "Profile":
+          seoTitle = "Business Settings – Setup Profile | Smart Vyapar";
+          seoDesc =
+            "Update brand logos, phone numbers, UPI handles, backup codes, and regional retail addresses.";
+          break;
+        case "Settings":
+          seoTitle = "Business Settings | Smart Vyapar";
+          seoDesc =
+            "Tweak system settings, margin spacing, active printer sizes, data erasure options, and offline sync switches.";
+          break;
+        case "Admin Panel":
+          seoTitle = "System Admin Console | Smart Vyapar";
+          seoDesc =
+            "Manage multi-store profiles, check system health analytics, edit master catalog tax lines, and adjust general system parameters.";
+          break;
       }
     }
-    // 2. Or is it a workspace deep-link metadata request?
-    else if (user && profile) {
-      if (previewBill) {
-        title = `Invoice #${previewBill.invoiceNumber || previewBill.billId} Detail | Smart Vyapar`;
-        desc = `Detailed view of invoice number ${previewBill.invoiceNumber || previewBill.billId} generated for ${previewBill.customerDetails?.name || "Customer"} inside Smart Vyapar Workspace database.`;
-      } else {
-        switch (activeTab) {
-          case "Dashboard":
-            title = "Smart Vyapar Dashboard";
-            desc =
-              "Merchant Home: Complete shop overview, real-time summaries, sales trend records, and critical stock level indicators.";
-            break;
-          case "Create Bill":
-            title = "Invoice Generator | Smart Vyapar";
-            desc =
-              "Create and print beautiful customized professional tax receipts with UPI QR codes in under 3 seconds.";
-            break;
-          case "Bill History":
-            title = "Invoice History & Archives | Smart Vyapar";
-            desc =
-              "Browse historical transaction collections, trace outstanding credit dues, and manage client bills.";
-            break;
-          case "Bill Payment Status":
-            title = "Bill Payment & UPI Status Tracker | Smart Vyapar";
-            desc =
-              "Review active UPI payment transactions, trace GPay, PhonePe, and Paytm statuses, and reconcile pending credits in your digital khata ledger.";
-            break;
-          case "Inventory":
-            title = "Inventory Management | Smart Vyapar";
-            desc =
-              "Track retail catalog entries, optimize reorder thresholds, and manage live stock levels.";
-            break;
-          case "AI Replenishment":
-            title = "AI Inventory Replenishment & Stock Predictor | Smart Vyapar";
-            desc =
-              "Leverage high-precision demand forecasting algorithms to track daily velocity and generate smart safety stock buffer reorder triggers.";
-            break;
-          case "Purchase Orders":
-            title = "Purchase Order Generator & Supplier Workspaces | Smart Vyapar";
-            desc =
-              "Generate professional purchase orders, coordinate directly with wholesale suppliers, and log incoming stock invoices with barcode integrations.";
-            break;
-          case "Analytics":
-            title = "Business Analytics | Smart Vyapar";
-            desc =
-              "Visualize weekly profit margins, revenue charts, tax collection metrics, and top-volume lines.";
-            break;
-          case "Financial Center":
-            title = "Financial Center & Cash ledger Registers | Smart Vyapar";
-            desc =
-              "Manage Cash Inflow, log outbound rental/operational expenses, review net income sheets, and monitor detailed GST balances dynamically.";
-            break;
-          case "Help Desk":
-            title = "Customer Support Portal & Help Desk | Smart Vyapar";
-            desc =
-              "Contact Smart Vyapar engineering, access step-by-step billing hardware guides, and clear local storage synchronization conflicts.";
-            break;
-          case "Notifications":
-            title = "Alert System & System Logs | Smart Vyapar";
-            desc =
-              "Track real-time stock shortages, low inventory ledger alerts, customer billing notifications, and data synchronizer events.";
-            break;
-          case "Profile":
-            title = "Business Settings – Setup Profile | Smart Vyapar";
-            desc =
-              "Update brand logos, phone numbers, UPI handles, backup codes, and regional retail addresses.";
-            break;
-          case "Settings":
-            title = "Business Settings | Smart Vyapar";
-            desc =
-              "Tweak system settings, margin spacing, active printer sizes, data erasure options, and offline sync switches.";
-            break;
-          case "Admin Panel":
-            title = "System Admin Console | Smart Vyapar";
-            desc =
-              "Manage multi-store profiles, check system health analytics, edit master catalog tax lines, and adjust general system parameters.";
-            break;
-        }
-      }
-    }
-
-    document.title = title;
-
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute("content", desc);
-
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute("content", title);
-
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.setAttribute("content", desc);
-
-    const ogUrl = document.querySelector('meta[property="og:url"]');
-    if (ogUrl)
-      ogUrl.setAttribute(
-         "content",
-        `https://smartvyapar.vercel.app${currentPath}`,
-      );
-
-    const twTitle = document.querySelector('meta[property="twitter:title"]');
-    if (twTitle) twTitle.setAttribute("content", title);
-
-    const twDesc = document.querySelector(
-      'meta[property="twitter:description"]',
-    );
-    if (twDesc) twDesc.setAttribute("content", desc);
-
-    const twUrl = document.querySelector('meta[property="twitter:url"]');
-    if (twUrl)
-      twUrl.setAttribute(
-         "content",
-        `https://smartvyapar.vercel.app${currentPath}`,
-      );
-
-    let canonicalLink = document.querySelector('link[rel="canonical"]');
-    if (!canonicalLink) {
-      canonicalLink = document.createElement("link");
-      canonicalLink.setAttribute("rel", "canonical");
-      document.head.appendChild(canonicalLink);
-    }
-    canonicalLink.setAttribute(
-      "href",
-      `https://smartvyapar.vercel.app${currentPath}`,
-    );
-  }, [currentPath, activeTab, previewBill, user, profile]);
+  }
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -676,7 +634,9 @@ function AppContent() {
 
   if (showSplash) {
     return (
-      <div className="min-h-screen w-full bg-slate-900 flex flex-col items-center justify-center font-sans relative overflow-hidden select-none">
+      <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
+        <div className="min-h-screen w-full bg-slate-900 flex flex-col items-center justify-center font-sans relative overflow-hidden select-none">
         {/* Geometric shapes glow */}
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
@@ -740,6 +700,7 @@ function AppContent() {
           </motion.p>
         </div>
       </div>
+      </>
     );
   }
 
@@ -748,6 +709,7 @@ function AppContent() {
     const pdfId = currentPath.replace("/view-pdf/", "");
     return (
       <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
         <PublicInvoiceViewer pdfId={pdfId} />
         <ToastContainer />
         <ConfirmModal />
@@ -755,11 +717,13 @@ function AppContent() {
     );
   }
 
-  // Only show the full screen loading screen on initial boot or when an authenticated user is fetching profiles/bills
-  if (!hasCheckedAuth || (isLoading && user)) {
+  // Only show the full screen loading screen on initial boot or when a first-time/uncached authenticated user is fetching profiles/bills
+  if (!hasCheckedAuth || (isLoading && (!user || !profile))) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4 font-sans">
-        <motion.div
+      <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4 font-sans">
+          <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
           className="h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full"
@@ -768,6 +732,7 @@ function AppContent() {
           Loading Smart Vyapar Workspace...
         </p>
       </div>
+      </>
     );
   }
 
@@ -797,6 +762,7 @@ function AppContent() {
   if (isPublicRoute) {
     return (
       <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
         <PublicPages
           currentPath={currentPath}
           onNavigate={(path) => {
@@ -853,6 +819,7 @@ function AppContent() {
 
     return (
       <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
         <PublicPages
           currentPath={displayPath}
           onNavigate={(path) => {
@@ -874,6 +841,7 @@ function AppContent() {
   if (!profile) {
     return (
       <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
         <ShopSetupForm />
         <ToastContainer />
         <ConfirmModal />
@@ -885,6 +853,7 @@ function AppContent() {
   if (profile.status === "deleted") {
     return (
       <>
+        <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
         <AccountRecoveryPage />
         <ToastContainer />
         <ConfirmModal />
@@ -1013,14 +982,17 @@ function AppContent() {
       case "Inventory":
         return <InventoryDashboard />;
       case "AI Replenishment":
-        return <AIReplenishmentDashboard />;
+        if (!isOnline) return <OfflineBlocker featureName="AI Replenishment & Stock Predictor" />;
+        return <AIReplenishmentDashboard onNavigate={handleActiveTabChange} />;
       case "Purchase Orders":
+        if (!isOnline) return <OfflineBlocker featureName="Purchase Orders Workspace" />;
         return <AIPurchaseOrderManager />;
       case "Analytics":
         return <AnalyticsDashboard />;
       case "Financial Center":
         return <FinancialCenter />;
       case "Help Desk":
+        if (!isOnline) return <OfflineBlocker featureName="Customer Support Portal" />;
         return <HelpDesk />;
       case "Notifications":
         return <NotificationsPage />;
@@ -1029,19 +1001,19 @@ function AppContent() {
       case "Settings":
         return <SettingsSection />;
       case "Admin Panel":
-        return profile.role === "admin" ? (
-          <AdminPanel />
-        ) : (
-          <div className="text-slate-800">Access Denied</div>
-        );
+        if (profile.role !== "admin") return <div className="text-slate-800">Access Denied</div>;
+        if (!isOnline) return <OfflineBlocker featureName="System Admin Console" />;
+        return <AdminPanel />;
       default:
         return <div className="text-white">Workspace View Coming Soon</div>;
     }
   };
 
   return (
-    <div className="flex h-screen w-full text-slate-800 overflow-hidden" style={{ backgroundColor: "#f8fafc", backgroundImage: "radial-gradient(#e2e8f0 1.5px, transparent 1.5px)", backgroundSize: "24px 24px", backgroundPosition: "0 0" }}>
-      {/* OVERLAY FOR MOBILE SIDEBAR */}
+    <>
+      <SEO title={seoTitle} description={seoDesc} url={currentPath} keywords={seoKeywords} />
+      <div className="flex h-screen w-full text-slate-800 overflow-hidden" style={{ backgroundColor: "#f8fafc", backgroundImage: "radial-gradient(#e2e8f0 1.5px, transparent 1.5px)", backgroundSize: "24px 24px", backgroundPosition: "0 0" }}>
+        {/* OVERLAY FOR MOBILE SIDEBAR */}
       {mobileMenuOpen && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -1463,6 +1435,7 @@ function AppContent() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

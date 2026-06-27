@@ -75,7 +75,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-let firebaseApp;
+let firebaseApp: any;
 let firebaseDb: any = null;
 let firebaseAuth: any = null;
 

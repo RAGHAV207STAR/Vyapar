@@ -12,8 +12,12 @@
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Vyapar – High-Speed GST Billing, Inventory Management & Invoicing App</title>
+    <title>Smart Vyapar – GST Billing & Inventory Management App</title>
     
+    <!-- Application Name Metadata (Crucial for overriding Vercel default names in Google) -->
+    <meta name="application-name" content="Smart Vyapar" />
+    <meta name="apple-mobile-web-app-title" content="Smart Vyapar" />
+
     <!-- Google Fonts Preconnect and Links -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +72,7 @@
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "Smart Vyapar",
+        "alternateName": ["SmartVyapar", "Smart Vyapar Billing App"],
         "url": "https://smartvyapar.vercel.app",
         "potentialAction": {
           "@type": "SearchAction",
@@ -200,10 +205,35 @@
           navigator.serviceWorker.register('/sw.js')
             .then((reg) => {
               console.log('Smart Vyapar ServiceWorker registered successfully with scope: ', reg.scope);
+              
+              // Actively check for updates periodically or on load
+              reg.update();
+              
+              // Handle new service worker installation
+              reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    // If the new worker is activated, we have a fresh version
+                    if (installingWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                      console.log('New update available! Reloading...');
+                    }
+                  };
+                }
+              };
             })
             .catch((err) => {
               console.error('Smart Vyapar ServiceWorker registration failed: ', err);
             });
+
+          // Reload immediately when the controlling service worker changes (due to skipWaiting)
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
         });
       }
     </script>

@@ -5,7 +5,7 @@
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
     <!-- Main Home Page - Smart Vyapar App -->
     <url>
-        <loc>https://smartvyapar.app/</loc>
+        <loc>https://smartvyapar.vercel.app/</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
@@ -13,25 +13,25 @@
 
     <!-- Essential Key Pages for Rankings & Keywords -->
     <url>
-        <loc>https://smartvyapar.app/features</loc>
+        <loc>https://smartvyapar.vercel.app/features</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/about</loc>
+        <loc>https://smartvyapar.vercel.app/about</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/faq</loc>
+        <loc>https://smartvyapar.vercel.app/faq</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/contact</loc>
+        <loc>https://smartvyapar.vercel.app/contact</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
@@ -39,31 +39,31 @@
 
     <!-- Dedicated Dynamic High Value Keywords Landing Targets -->
     <url>
-        <loc>https://smartvyapar.app/billing-software</loc>
+        <loc>https://smartvyapar.vercel.app/billing-software</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/inventory-management</loc>
+        <loc>https://smartvyapar.vercel.app/inventory-management</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/invoice-generator</loc>
+        <loc>https://smartvyapar.vercel.app/invoice-generator</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/business-analytics</loc>
+        <loc>https://smartvyapar.vercel.app/business-analytics</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/blog</loc>
+        <loc>https://smartvyapar.vercel.app/blog</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
@@ -71,13 +71,13 @@
 
     <!-- Privacy and Terms -->
     <url>
-        <loc>https://smartvyapar.app/privacy-policy</loc>
+        <loc>https://smartvyapar.vercel.app/privacy-policy</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
-        <loc>https://smartvyapar.app/terms</loc>
+        <loc>https://smartvyapar.vercel.app/terms</loc>
         <lastmod>2026-06-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.3</priority>

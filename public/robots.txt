@@ -1,5 +1,5 @@
 # Search Engine Optimization for Smart Vyapar
-# Official URL: https://smartvyapar.app/
+# Official URL: https://smartvyapar.vercel.app/
 
 User-agent: *
 
@@ -34,4 +34,4 @@ Disallow: /admin/
 Disallow: /firebase/
 
 # Cite dynamic production sitemap URL
-Sitemap: https://smartvyapar.app/sitemap.xml
+Sitemap: https://smartvyapar.vercel.app/sitemap.xml

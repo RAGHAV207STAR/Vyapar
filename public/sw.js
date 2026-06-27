@@ -60,31 +60,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Stale-While-Revalidate caching for static assets & pages
+  // 3. Network-First caching strategy for instant updates
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        // Asynchronously fetch fresh content from the network
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-              // Cache the new version for subsequent loads
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch((err) => {
-            console.log('Network request failed for ' + url.pathname + '; using cached asset if available.');
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
           });
-
-        // Return the cached version immediately (speed of <10ms!) or wait for the network fetch if not cached
-        return cachedResponse || fetchPromise;
-      }).catch(() => {
-        // Fallback when both cache and network fail
-        if (event.request.mode === 'navigate') {
-          return cache.match('/index.html');
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch((err) => {
+        console.log('Network request failed for ' + url.pathname + '; using cached asset if available.');
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Fallback when both cache and network fail
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
 });
